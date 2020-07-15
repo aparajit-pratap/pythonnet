@@ -1457,6 +1457,23 @@ namespace Python.Runtime
             }
         }
 
+        /// <summary>
+        /// GetManagedObject Method
+        /// </summary>
+        /// <remarks>
+        /// Returns the underlying managed object wrapped by this or null
+        /// if this is not a wrapper for a managed object
+        /// </remarks>
+        public object GetManagedObject()
+        {
+            ManagedType mt = ManagedType.GetManagedObject(obj);
+            if (mt is CLRObject)
+            {
+                return ((CLRObject)mt).inst;
+            }
+            return null;
+        }
+
         void ISerializable.GetObjectData(SerializationInfo info, StreamingContext context)
             => GetObjectData(info, context);
         protected virtual void GetObjectData(SerializationInfo info, StreamingContext context)

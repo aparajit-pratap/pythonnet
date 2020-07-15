@@ -62,7 +62,26 @@ a = MemberNamesTest()
         public void InvokeNull()
         {
             var list = PythonEngine.Eval("list");
-            Assert.Throws<ArgumentNullException>(() => list.Invoke(new PyObject[] {null}));
+            Assert.Throws<ArgumentNullException>(() => list.Invoke(new PyObject[] { null }));
+        }
+
+        [Test]
+        public void GetManagedObject()
+        {
+            var instance = new TestClass();
+            var pyObj = instance.ToPython();
+            Assert.AreEqual(instance, pyObj.GetManagedObject());
+        }
+
+        [Test]
+        public void GetManagedObjectNull()
+        {
+            var pyObj = new PyString("Hello");
+            Assert.AreEqual(null, pyObj.GetManagedObject());
+        }
+
+        private class TestClass
+        {
         }
 
         [Test]
