@@ -43,10 +43,7 @@ a = CmTest()
 
             try
             {
-                Py.With(a, cmTest =>
-                {
-                    cmTest.fail();
-                });
+                Py.With(a, cmTest => { cmTest.fail(); });
             }
             catch (PythonException e)
             {
@@ -79,10 +76,36 @@ a = CmTest()
 ", null, locals.Handle);
 
             var a = locals.GetItem("a");
-            Py.With(a, cmTest =>
-            {
-                cmTest.fail();
-            });
+            Py.With(a, cmTest => { cmTest.fail(); });
         }
+
+        [Test]
+        public void TestWithIDisposable()
+        {
+            PyDict locals = new PyDict();
+            PythonEngine.Exec(@"
+import clr
+clr.AddReference('Python.EmbeddingTest')
+import Python.EmbeddingTest
+from Python.EmbeddingTest import MyIDisposable
+with MyIDisposable() as mi:
+    result1 = MyIDisposable.IsDisposed
+
+result2 = MyIDisposable.IsDisposed
+", null, locals.Handle);
+
+            Assert.AreEqual(0, PyInt.AsInt(locals.GetItem("result1")).ToInt32());
+            Assert.AreEqual(1, PyInt.AsInt(locals.GetItem("result2")).ToInt32());
+        }
+    }
+
+    public class MyIDisposable : IDisposable
+    {
+        public static bool IsDisposed;
+        public void Dispose()
+        {
+            IsDisposed = true;
+        }
+
     }
 }

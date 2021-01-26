@@ -586,9 +586,44 @@ namespace Python.Runtime
                 }
             }
 
+            // Dynamically add enter, exit dunder methods to IDisposables so that they 
+            // can be used in Python "with" statements just like C# using statements.
+            bool isDisposable = typeof(IDisposable).IsAssignableFrom(type);
+            if (isDisposable)
+            {
+                // Add __enter__ and __exit__ methods
+                name = nameof(__enter__);
+                var mi = typeof(ClassManager).GetMethod(name);
+                var mlist = new[] { mi };
+
+                ob = new MethodObject(type, name, mlist);
+                ci.members[name] = ob;
+
+                name = nameof(__exit__);
+                mi = typeof(ClassManager).GetMethod(name);
+
+                mlist = new[] { mi };
+
+                ob = new MethodObject(type, name, mlist);
+                ci.members[name] = ob;
+            }
+
             return ci;
         }
-        
+
+        public static IDisposable __enter__(IDisposable o)
+        {
+            return o;
+        }
+
+        public static bool __exit__(IDisposable o, Type et, Exception ev, PyObject tb)
+        {
+            o.Dispose();
+            // return false so that if there are any exceptions arising from the body
+            // of the "with" statement in Python, it will be rethrown and bubble up.
+            return false;
+        }
+
         /// <summary>
         /// This class owns references to PyObjects in the `members` member.
         /// The caller has responsibility to DECREF them.
