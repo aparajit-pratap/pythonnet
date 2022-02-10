@@ -1,4 +1,6 @@
 using System;
+using System.Numerics;
+
 using NUnit.Framework;
 using Python.Runtime;
 
@@ -178,6 +180,35 @@ namespace Python.EmbeddingTest
             var a = new PyInt(val);
             Assert.IsInstanceOf(typeof(long), a.ToInt64());
             Assert.AreEqual(val, a.ToInt64());
+        }
+
+        [Test]
+        public void TestToInt64Overflow()
+        {
+            // A big number can't be marshalled to Python, so it's created from Python instead.
+            using (Py.GIL())
+            {
+                const string tooBigForALong = "111111111111111111111";
+                var bigLongAsObj = PythonEngine.Eval(tooBigForALong);
+                Assert.IsTrue(PyInt.IsIntType(bigLongAsObj));
+                var bigLong = PyInt.AsInt(bigLongAsObj);
+                var exc = Assert.Throws<PythonException>(() => bigLong.ToInt64());
+                StringAssert.Contains("OverflowError", exc.Message);
+            }
+        }
+
+        [Test]
+        public void TestToBigInteger()
+        {
+            // A big number can't be marshalled to Python, so it's created from Python instead.
+            using (Py.GIL())
+            {
+                const string tooBigForALong = "111111111111111111111";
+                var bigLongAsObj = PythonEngine.Eval(tooBigForALong);
+                Assert.IsTrue(PyInt.IsIntType(bigLongAsObj));
+                var bigLong = PyInt.AsInt(bigLongAsObj);
+                Assert.AreEqual(BigInteger.Parse(tooBigForALong), bigLong.ToBigInteger());
+            }
         }
     }
 }

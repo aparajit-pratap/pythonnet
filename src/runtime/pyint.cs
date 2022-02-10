@@ -1,4 +1,5 @@
 using System;
+using System.Numerics;
 using System.Runtime.Serialization;
 
 namespace Python.Runtime
@@ -197,6 +198,26 @@ namespace Python.Runtime
                 throw PythonException.ThrowLastAsClrException();
             }
             return val.Value;
+        }
+
+        /// <summary>
+        /// BigInteger Method
+        /// </summary>
+        /// <remarks>
+        /// Return the value of the Python int object as a BigInteger.
+        /// </remarks>
+        public BigInteger ToBigInteger()
+        {
+            using var strPtr = Runtime.PyObject_Str(obj);
+            if (strPtr.IsNull())
+            {
+                throw PythonException.ThrowLastAsClrException();
+            }
+
+            var pyStr = new PyString(strPtr.Borrow());
+            var str = pyStr.ToString();
+            pyStr.Dispose();
+            return BigInteger.Parse(str);
         }
     }
 }
