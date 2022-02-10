@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.Serialization;
+using System.Collections;
 
 namespace Python.Runtime
 {
@@ -141,6 +142,33 @@ namespace Python.Runtime
             return op.MoveToPyObject();
         }
 
+        /// <summary>
+        /// ToList Method
+        /// </summary>
+        /// <remarks>
+        /// Returns a non-generic .NET list with the items found in the sequence
+        /// </remarks>
+        public IList ToList()
+        {
+            IList result;
+            Converter.ToList(obj, typeof(IList), out result, false);
+            return result;
+        }
+
+
+        /// <summary>
+        /// ToList&lt;T&gt; Method
+        /// </summary>
+        /// <remarks>
+        /// Returns a generic .NET list with the items found in the sequence
+        /// </remarks>
+        /// <typeparam name="T">List type with a generic type argument</typeparam>
+        public T ToList<T>()
+        {
+            IList result;
+            Converter.ToList(obj, typeof(T), out result, false);
+            return (T)result;
+        }
 
         /// <summary>
         /// Return the sequence object repeated N times. This is equivalent

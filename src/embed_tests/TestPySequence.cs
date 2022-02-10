@@ -1,6 +1,7 @@
 using System;
 using NUnit.Framework;
 using Python.Runtime;
+using System.Collections.Generic;
 
 namespace Python.EmbeddingTest
 {
@@ -90,6 +91,18 @@ namespace Python.EmbeddingTest
             Assert.AreEqual(4, t1.Index32(new PyString("a")));
             Assert.AreEqual(5L, t1.Index64(new PyString("r")));
             Assert.AreEqual(-(nint)1, t1.Index(new PyString("z")));
+        }
+
+        [Test]
+        public void ToList()
+        {
+            var pyObj = PythonEngine.Eval("['a']");
+            var pyList = PyList.AsList(pyObj);
+            var expected = new string[] { "a" };
+            var untypedList = pyList.ToList();
+            var typedList = pyList.ToList<List<string>>();
+            CollectionAssert.AreEqual(expected, untypedList);
+            CollectionAssert.AreEqual(expected, typedList);
         }
     }
 }

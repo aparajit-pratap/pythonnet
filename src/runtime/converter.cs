@@ -950,6 +950,73 @@ namespace Python.Runtime
             return true;
         }
 
+        /// <summary>
+        /// Constructs a managed IList from a Python sequence 
+        /// </summary>
+        internal static bool ToList(BorrowedReference value, Type obType, out IList result, bool setError)
+        {
+            Type elementType;
+            if (obType.IsArray)
+            {
+                elementType = obType.GetElementType();
+            }
+            else if (obType.IsGenericType)
+            {
+                elementType = obType.GetGenericArguments().FirstOrDefault();
+            }
+            else
+            {
+                elementType = null;
+            }
+
+            result = null;
+
+            bool IsSeqObj = Runtime.PySequence_Check(value);
+            var len = IsSeqObj ? Runtime.PySequence_Size(value) : -1;
+
+            using var IterObject = Runtime.PyObject_GetIter(value);
+
+            if (IterObject.IsNull())
+            {
+                if (setError)
+                {
+                    SetConversionError(value, obType);
+                }
+                return false;
+            }
+
+            IList list;
+            if (elementType != null)
+            {
+                var listType = typeof(List<>);
+                var constructedListType = listType.MakeGenericType(elementType);
+                list = IsSeqObj ? (IList)Activator.CreateInstance(constructedListType, new Object[] { (int)len }) :
+                    (IList)Activator.CreateInstance(constructedListType);
+            }
+            else
+            {
+                list = IsSeqObj ? new ArrayList((int)len) : new ArrayList();
+            }
+
+            while (true)
+            {
+                using var item = Runtime.PyIter_Next(IterObject.Borrow());
+                if (item.IsNull()) break;
+
+                object obj = null;
+
+                if (!Converter.ToManaged(item.Borrow(), elementType ?? typeof(object), out obj, true))
+                {
+                    return false;
+                }
+
+                list.Add(obj);
+            }
+
+            result = list;
+            return true;
+        }
+
         internal static bool ToDictionary(BorrowedReference value, Type obType, out IDictionary? result, bool setError)
         {
             Type keyType;
