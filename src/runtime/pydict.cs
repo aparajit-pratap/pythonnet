@@ -1,5 +1,6 @@
 using System;
 using System.Runtime.Serialization;
+using System.Collections;
 
 namespace Python.Runtime
 {
@@ -170,6 +171,34 @@ namespace Python.Runtime
         public void Clear()
         {
             Runtime.PyDict_Clear(obj);
+        }
+
+        /// <summary>
+        /// ToDictionary Method
+        /// </summary>
+        /// <remarks>
+        /// Converts the Python dict into a non-generic .NET dictionary
+        /// </remarks>
+        public IDictionary ToDictionary()
+        {
+            IDictionary result;
+            Converter.ToDictionary(obj, typeof(IDictionary), out result, false);
+            return result;
+        }
+
+
+        /// <summary>
+        /// ToDictionary&lt;T&gt; Method
+        /// </summary>
+        /// <remarks>
+        /// Converts the Python dict into a generic .NET dictionary
+        /// </remarks>
+        /// <typeparam name="T">Dictionary type with generic type arguments</typeparam>
+        public T ToDictionary<T>()
+        {
+            IDictionary result;
+            Converter.ToDictionary(obj, typeof(T), out result, false);
+            return (T)result;
         }
 
         public override int GetHashCode() => rawPtr.GetHashCode();

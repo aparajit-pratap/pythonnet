@@ -5,6 +5,7 @@ using System.Diagnostics;
 using System.Reflection;
 using System.Runtime.InteropServices;
 using System.Security;
+using System.Linq;
 
 namespace Python.Runtime
 {
@@ -946,6 +947,73 @@ namespace Python.Runtime
             list.CopyTo(items, 0);
 
             result = items;
+            return true;
+        }
+
+        internal static bool ToDictionary(BorrowedReference value, Type obType, out IDictionary? result, bool setError)
+        {
+            Type keyType;
+            Type valueType;
+            if (obType.IsGenericType)
+            {
+                var types = obType.GetGenericArguments();
+                keyType = types.FirstOrDefault();
+                valueType = types.Skip(1).FirstOrDefault();
+            }
+            else
+            {
+                keyType = null;
+                valueType = null;
+            }
+
+            result = null;
+
+            using var IterObject = Runtime.PyObject_GetIter(value);
+
+            if (IterObject.IsNull())
+            {
+                if (setError)
+                {
+                    SetConversionError(value, obType);
+                }
+                return false;
+            }
+
+            IDictionary dict;
+            if (keyType != null && valueType != null)
+            {
+                var dictType = typeof(Dictionary<,>);
+                var constructedDictType = dictType.MakeGenericType(keyType, valueType);
+                dict = (IDictionary)Activator.CreateInstance(constructedDictType);
+            }
+            else
+            {
+                dict = new Hashtable();
+            }
+
+
+            while (true)
+            {
+                using var dictKey = Runtime.PyIter_Next(IterObject.Borrow());
+                if (dictKey.IsNull()) break;
+
+                object keyObj, valueObj;
+
+                if (!Converter.ToManaged(dictKey.Borrow(), keyType ?? typeof(object), out keyObj, true))
+                {
+                    return false;
+                }
+
+                using var dictValue = Runtime.PyObject_GetItem(value, dictKey.Borrow());
+                if (!Converter.ToManaged(dictValue.Borrow(), valueType ?? typeof(object), out valueObj, true))
+                {
+                    return false;
+                }
+
+                dict.Add(keyObj, valueObj);
+            }
+
+            result = dict;
             return true;
         }
 
