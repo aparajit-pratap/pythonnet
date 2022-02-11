@@ -193,7 +193,7 @@ namespace Python.EmbeddingTest
                 Assert.IsTrue(PyInt.IsIntType(bigLongAsObj));
                 var bigLong = PyInt.AsInt(bigLongAsObj);
                 var exc = Assert.Throws<PythonException>(() => bigLong.ToInt64());
-                StringAssert.Contains("OverflowError", exc.Message);
+                StringAssert.Contains("int too big to convert", exc.Message);
             }
         }
 
