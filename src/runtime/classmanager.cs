@@ -286,7 +286,7 @@ namespace Python.Runtime
             return (fi.IsPublic || fi.IsFamily || fi.IsFamilyOrAssembly);
         }
 
-        internal static bool ShouldBindProperty(PropertyInfo pi)
+        internal static bool ShouldBindProperty(PropertyInfo pi, Type type)
         {
                 MethodInfo? mm;
                 try
@@ -305,6 +305,11 @@ namespace Python.Runtime
                 }
 
                 if (mm == null)
+                {
+                    return false;
+                }
+
+                if(mm.DeclaringType != type)
                 {
                     return false;
                 }
@@ -427,7 +432,7 @@ namespace Python.Runtime
                     case MemberTypes.Property:
                         var pi = (PropertyInfo)mi;
 
-                        if(!ShouldBindProperty(pi))
+                        if(!ShouldBindProperty(pi, type))
                         {
                             continue;
                         }
