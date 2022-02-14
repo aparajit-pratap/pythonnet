@@ -27,10 +27,10 @@ namespace Python.EmbeddingTest
             var pyObj = PythonEngine.Eval("{ 'one': 1 }");
             var pyDict = new PyDict(pyObj);
             var untypedDictionary = pyDict.ToDictionary();
-            var typedDictionary = pyDict.ToDictionary<IDictionary<string, int>>();
-            var expected = new Dictionary<string, int>
+            var typedDictionary = pyDict.ToDictionary<IDictionary<string, PyInt>>();
+            var expected = new Dictionary<string, PyInt>
             {
-                { "one", 1 }
+                { "one", new PyInt(1) }
             };
             DictionaryAssert(expected, untypedDictionary);
             DictionaryAssert(expected, (IDictionary)typedDictionary);
