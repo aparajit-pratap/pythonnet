@@ -9,7 +9,7 @@
 import System
 import pytest
 from Python.Test import (IInterfaceTest, SubClassTest, EventArgsTest,
-                         FunctionsTest)
+                         FunctionsTest, IGenericInterface, GenericVirtualMethodTest, SimpleClass, ISayHello1)
 from System.Collections.Generic import List
 
 
@@ -27,6 +27,17 @@ def interface_test_class_fixture(subnamespace):
             return "/".join([x] * i)
 
     return InterfaceTestClass
+
+
+def interface_generic_class_fixture(subnamespace):
+
+    class GenericInterfaceImpl(IGenericInterface[int]):
+        __namespace__ = "Python.Test." + subnamespace
+
+        def Get(self, x):
+            return x
+
+    return GenericInterfaceImpl
 
 
 def derived_class_fixture(subnamespace):
@@ -306,3 +317,30 @@ def test_can_be_collected_by_gc():
 
     import gc
     gc.collect()
+
+def test_generic_interface():
+    from System import Int32
+    from Python.Test import GenericInterfaceUser, SpecificInterfaceUser
+
+    GenericInterfaceImpl = interface_generic_class_fixture(test_generic_interface.__name__)
+
+    obj = GenericInterfaceImpl()
+    SpecificInterfaceUser(obj, Int32(0))
+    GenericInterfaceUser[Int32](obj, Int32(0))
+
+def test_virtual_generic_method():
+    class OverloadingSubclass(GenericVirtualMethodTest):
+        __namespace__ = "test_virtual_generic_method_cls"
+    class OverloadingSubclass2(OverloadingSubclass):
+        __namespace__ = "test_virtual_generic_method_cls"
+    obj = OverloadingSubclass()
+    assert obj.VirtMethod[int](5) == 5
+    obj = OverloadingSubclass2()
+    assert obj.VirtMethod[int](5) == 5
+
+def test_implement_interface_and_class():
+    class DualSubClass0(ISayHello1, SimpleClass):
+        __namespace__ = "Test"
+        def SayHello(self):
+            return "hello"
+    obj = DualSubClass0()
