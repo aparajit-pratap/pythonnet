@@ -84,5 +84,68 @@ a = CmTest()
                 cmTest.fail();
             });
         }
+
+        [Test]
+            public void TestWithIDisposable()
+        {
+            PyDict locals = new PyDict();
+            PythonEngine.Exec(@"
+import clr
+clr.AddReference('Python.EmbeddingTest')
+import Python.EmbeddingTest
+from Python.EmbeddingTest import MyIDisposable
+with MyIDisposable() as mi:
+    result1 = MyIDisposable.IsDisposed
+result2 = MyIDisposable.IsDisposed
+", null, locals);
+
+            Assert.AreEqual(0, PyInt.AsInt(locals.GetItem("result1")).ToInt32());
+            Assert.AreEqual(1, PyInt.AsInt(locals.GetItem("result2")).ToInt32());
+        }
+
+        [Test]
+        public void TestWithIDisposableException()
+        {
+            PyDict locals = new PyDict();
+
+            PythonEngine.Exec(@"
+import clr
+clr.AddReference('Python.EmbeddingTest')
+import Python.EmbeddingTest
+from Python.EmbeddingTest import MyIDisposableException
+try:
+    with MyIDisposableException() as mi:
+        result1 = MyIDisposableException.IsDisposed
+        mi.NotImplemented()
+except:
+    result2 = MyIDisposableException.IsDisposed
+", null, locals);
+
+            Assert.AreEqual(0, PyInt.AsInt(locals.GetItem("result1")).ToInt32());
+            Assert.AreEqual(1, PyInt.AsInt(locals.GetItem("result2")).ToInt32());
+        }
+
+    }
+
+    public class MyIDisposable : IDisposable
+    {
+        public static bool IsDisposed;
+        public void Dispose()
+        {
+            IsDisposed = true;
+        }
+    }
+
+    public class MyIDisposableException : IDisposable
+    {
+        public static bool IsDisposed;
+        public void Dispose()
+        {
+            IsDisposed = true;
+        }
+        public void NotImplemented()
+        {
+            throw new NotImplementedException();
+        }
     }
 }

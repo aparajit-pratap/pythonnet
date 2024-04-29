@@ -36,6 +36,16 @@ namespace Python.Runtime
         internal static Dictionary<MaybeType, ReflectedClrType> cache = new(capacity: 128);
         private static readonly Type dtype;
 
+        private static readonly MethodInfo enterMethodInfo =
+            typeof(ClassManager).GetMethod(nameof(OnEnter));
+
+        private static readonly MethodInfo exitMethodInfo =
+            typeof(ClassManager).GetMethod(nameof(OnExit));
+
+        private const string EnterMethodName = "__enter__";
+        private const string ExitMethodName = "__exit__";
+
+
         private ClassManager()
         {
         }
@@ -574,7 +584,36 @@ namespace Python.Runtime
                 }
             }
 
+            // Dynamically add enter, exit dunder methods to IDisposables so that they 
+            // can be used in Python "with" statements just like C# using statements.
+            bool isDisposable = typeof(IDisposable).IsAssignableFrom(type);
+            if (isDisposable)
+            {
+                // Add __enter__ and __exit__ methods
+                var mlist = new[] { enterMethodInfo };
+                ob = new MethodObject(type, nameof(OnEnter), mlist);
+                ci.members[EnterMethodName] = ob.AllocObject();
+
+                mlist = new[] { exitMethodInfo };
+                ob = new MethodObject(type, nameof(OnExit), mlist);
+                ci.members[ExitMethodName] = ob.AllocObject();
+            }
+
             return ci;
+        }
+
+        public static IDisposable OnEnter(IDisposable o)
+        {
+            return o;
+        }
+
+        public static bool OnExit(IDisposable o, Type et, Exception ev, PyObject tb)
+        {
+            o.Dispose();
+            // return false so that if there are any exceptions arising from the body
+            // of the "with" statement in Python, it will be rethrown and bubble up.
+            // returning true will suppress the exceptions if any.
+            return false;
         }
 
         /// <summary>

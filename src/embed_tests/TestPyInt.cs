@@ -211,6 +211,9 @@ namespace Python.EmbeddingTest
                 var bigLong = PyInt.AsInt(bigLongAsObj);
                 Assert.AreEqual(BigInteger.Parse(tooBigForALong), bigLong.ToBigInteger());
             }
+        }
+
+        [Test]
         public void ToBigInteger()
         {
             int[] simpleValues =
