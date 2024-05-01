@@ -209,6 +209,24 @@ namespace Python.Runtime
                     disposeList.Add(unboundArgs);
                     args = unboundArgs;
                 }
+                ///// Part of https://git.autodesk.com/Dynamo/pythonnet/pull/13 used for the python `with` feature
+                ///// TODO : figure out the full merge for pull/13
+                else if (target is not null && self.m.IsStatic())
+                {
+                    // This is the scenario we are calling an extension method.
+                    // The target should be passed as the first argument of the call.
+                    var len = Runtime.PyTuple_Size(args);
+                    var newArgs = Runtime.PyTuple_New(len + 1).Borrow();
+                    Runtime.PyTuple_SetItem(newArgs, 0, target);
+                    for (int i = 0; i < len; i++)
+                    {
+                        var item = Runtime.PyTuple_GetItem(args, i);
+                        Runtime.PyTuple_SetItem(newArgs, i + 1, item);
+                    }
+                    args = newArgs;
+                    // TODO: figure out disposal of any newly alocated objects
+                }
+                ///// Part of https://git.autodesk.com/Dynamo/pythonnet/pull/13 used for the python `with` feature
 
                 // if the class is a IPythonDerivedClass and target is not the same as self.targetType
                 // (eg if calling the base class method) then call the original base class method instead

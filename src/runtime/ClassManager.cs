@@ -607,7 +607,7 @@ namespace Python.Runtime
             return o;
         }
 
-        public static bool OnExit(IDisposable o, Type et, Exception ev, PyObject tb)
+        public static bool OnExit(IDisposable o, PyObject et, PyObject ev, PyObject tb)
         {
             o.Dispose();
             // return false so that if there are any exceptions arising from the body
