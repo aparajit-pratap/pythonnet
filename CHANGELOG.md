@@ -20,6 +20,8 @@ This document follows the conventions laid out in [Keep a CHANGELOG][].
 
 -   Fixed RecursionError for reverse operators on C# operable types from python. See #2240
 
+-   Fixed operators overloading conflict with unbounded, extension method identification. See (https://git.autodesk.com/Dynamo/pythonnet/pull/47)
+
 ## [3.0.3](https://github.com/pythonnet/pythonnet/releases/tag/v3.0.3) - 2023-10-11
 
 ### Added

@@ -211,7 +211,7 @@ namespace Python.Runtime
                 }
                 ///// Part of https://git.autodesk.com/Dynamo/pythonnet/pull/13 used for the python `with` feature
                 ///// TODO : figure out the full merge for pull/13
-                else if (target is not null && self.m.IsStatic())
+                else if (target is not null && self.m.IsStatic() && !self.m.IsOperator())
                 {
                     // This is the scenario we are calling an extension method.
                     // The target should be passed as the first argument of the call.

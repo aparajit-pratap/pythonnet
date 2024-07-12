@@ -83,7 +83,7 @@ namespace Python.Runtime
 
         public static bool IsOperatorMethod(MethodBase method)
         {
-            if (!method.IsSpecialName && !method.IsOpsHelper())
+            if (method is null || (!method.IsSpecialName && !method.IsOpsHelper()))
             {
                 return false;
             }

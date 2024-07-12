@@ -140,6 +140,15 @@ namespace Python.Runtime
         }
 
         /// <summary>
+        /// Determines if all method candidates are operator methods. This allows for
+        /// informed decision-making when selecting the appropriate method to call.
+        /// </summary>
+        internal bool IsOperator()
+        {
+            return info.Length > 0 && info.All(OperatorMethod.IsOperatorMethod);
+        }
+
+        /// <summary>
         /// Descriptor __getattribute__ implementation.
         /// </summary>
         public static NewReference tp_getattro(BorrowedReference ob, BorrowedReference key)
