@@ -1,5 +1,6 @@
 using System.Collections;
 using System.Collections.Generic;
+using System.Xml.Linq;
 
 using NUnit.Framework;
 
@@ -34,6 +35,16 @@ namespace Python.EmbeddingTest
             };
             DictionaryAssert(expected, untypedDictionary);
             DictionaryAssert(expected, (IDictionary)typedDictionary);
+        }
+
+        [Test]
+        public void TestDecodeDictionary()
+        {
+            PythonEngine.Exec($@"
+from System.Collections.Generic import *
+d = Dictionary[str,int]({{ 'one': 1 }})
+assert d['one'] == 1
+");
         }
 
         private void DictionaryAssert(IDictionary expected, IDictionary actual)

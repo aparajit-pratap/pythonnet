@@ -175,15 +175,13 @@ namespace Python.Runtime
         /// ToDictionary Method
         /// </summary>
         /// <remarks>
-        /// Converts the Python dict into a non-generic .NET dictionary
+        /// Converts the Python dictionary into a .NET dictionary.
         /// </remarks>
-        public IDictionary ToDictionary()
+        public IDictionary ToDictionary(Type? dictionaryType = null)
         {
-            IDictionary result;
-            Converter.ToDictionary(obj, typeof(IDictionary), out result, false);
+            Converter.ToDictionary(obj, dictionaryType ?? typeof(IDictionary), out IDictionary result, false);
             return result;
         }
-
 
         /// <summary>
         /// ToDictionary&lt;T&gt; Method
@@ -194,8 +192,7 @@ namespace Python.Runtime
         /// <typeparam name="T">Dictionary type with generic type arguments</typeparam>
         public T ToDictionary<T>()
         {
-            IDictionary result;
-            Converter.ToDictionary(obj, typeof(T), out result, false);
+            Converter.ToDictionary(obj, typeof(T), out IDictionary result, false);
             return (T)result;
         }
 

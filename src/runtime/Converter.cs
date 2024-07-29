@@ -467,6 +467,14 @@ namespace Python.Runtime
                 }
             }
 
+            if (IsDictionary(obType)
+                && Runtime.PyDict_Check(value))
+            {
+                using var pyDict = new PyDict(value);
+                result = pyDict.ToDictionary(obType);
+                return true;
+            }
+
             if (obType == typeof(System.Numerics.BigInteger)
                 && Runtime.PyInt_Check(value))
             {
@@ -1034,6 +1042,9 @@ namespace Python.Runtime
             return true;
         }
 
+        /// <summary>
+        /// Constructs a managed IDictionary from a Python dictionary.
+        /// </summary>
         internal static bool ToDictionary(BorrowedReference value, Type obType, out IDictionary? result, bool setError)
         {
             Type keyType;
@@ -1102,11 +1113,30 @@ namespace Python.Runtime
         }
 
         internal static bool IsFloatingNumber(Type type) => type == typeof(float) || type == typeof(double);
+
         internal static bool IsInteger(Type type)
             => type == typeof(Byte) || type == typeof(SByte)
             || type == typeof(Int16) || type == typeof(UInt16)
             || type == typeof(Int32) || type == typeof(UInt32)
             || type == typeof(Int64) || type == typeof(UInt64);
+
+        private static readonly Type[] dictionaryInterfaces =
+        {
+          typeof(IDictionary<,>),
+          typeof(System.Collections.IDictionary),
+          typeof(IReadOnlyDictionary<,>),
+        };
+
+        internal static bool IsDictionary(Type type)
+        {
+            return dictionaryInterfaces
+                .Any(dictInterface =>
+                    dictInterface == type
+                    || (type.IsGenericType && dictInterface == type.GetGenericTypeDefinition())
+                    || type.GetInterfaces().Any(typeInterface =>
+                        typeInterface == dictInterface ||
+                        (typeInterface.IsGenericType && dictInterface == typeInterface.GetGenericTypeDefinition())));
+        }
     }
 
     public static class ConverterExtension
