@@ -99,6 +99,59 @@ namespace Python.Runtime
             return ClassBase.tp_repr(ob);
         }
 
+
+        /// <summary>
+        /// ClassObject __getattribute__ implementation. Since extension methods are not attributes
+        /// they need to be returned dynamically.
+        /// </summary>
+        public static NewReference tp_getattro(BorrowedReference ob, BorrowedReference key)
+        {
+            // Return existing attributes. This covers real instance methods.
+            NewReference newRef = Runtime.PyObject_GenericGetAttr(ob, key);
+            if (!newRef.IsNull() && !newRef.IsNone() && newRef.DangerousGetAddress() != IntPtr.Zero)
+            {
+                return newRef;
+            }
+
+            NewReference nullRef = NewReference.DangerousFromPointer(IntPtr.Zero);
+            if (!Runtime.PyString_Check(key))
+            {
+                Exceptions.SetError(Exceptions.TypeError, "string expected");
+                return nullRef;
+            }
+
+            string? name = Runtime.GetManagedString(key);
+            if (name is null)
+            {
+                Exceptions.SetError(Exceptions.ValueError, "missing managed string key");
+                return nullRef;
+            }
+
+            CLRObject? self = GetManagedObject(ob) as CLRObject;
+            if (self is null)
+            {
+                Exceptions.SetError(Exceptions.ValueError, "missing CLR object");
+                return nullRef;
+            }
+
+            var methodObject = ExtensionManager.GetExtensionMethodObject(self.inst.GetType(), name);
+
+            if (methodObject != null)
+            {
+                // Method bindings are created dynamically for each call
+                var binding = new MethodBinding(methodObject, PyObject.FromNullableReference(ob));
+
+                //TODO
+                //Investigate why we are missing PyObject_GenericHasAttr which would help us here. 
+                //PyObject_GenericGetAttr sets an error in Python when the attribute is not found.                
+                //However we need to do this check first because an existing attribute has priority.
+                Runtime.PyErr_Clear();
+                return binding.Alloc();
+            }
+
+            return nullRef;
+        }
+
         /// <summary>
         /// Implements __new__ for reflected classes and value types.
         /// </summary>

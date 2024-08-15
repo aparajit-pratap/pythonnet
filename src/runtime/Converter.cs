@@ -321,6 +321,9 @@ namespace Python.Runtime
                     result = cb.type.Value;
                     return true;
 
+                case ModuleObject mo:                    
+                    result = mo;
+                    return true;
                 case null:
                     break;
 

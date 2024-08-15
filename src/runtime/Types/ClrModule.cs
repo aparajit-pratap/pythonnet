@@ -194,5 +194,24 @@ namespace Python.Runtime
         [ModuleFunction]
         [ForbidPythonThreads]
         public static int _add_pending_namespaces() => ImportHook.AddPendingNamespaces();
+
+        [ModuleFunction]
+        [ForbidPythonThreads]
+        public static void ImportExtensions(ModuleObject module)
+        {
+            foreach (var name in AssemblyManager.GetNames(module.moduleName))
+            {
+                var attribute = module.GetAttribute(name, false);
+                var managedObj = GetManagedObject(attribute.Borrow());
+                if (managedObj is ClassBase)
+                {
+                    var classBase = managedObj as ClassBase;
+                    if (classBase != null && ExtensionManager.IsExtensionType(classBase))
+                    {
+                        ExtensionManager.RegisterExtensionType(classBase);
+                    }
+                }
+            }
+        }
     }
 }

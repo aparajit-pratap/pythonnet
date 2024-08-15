@@ -9,13 +9,13 @@
   </PropertyGroup>
 
   <ItemGroup>
-    <Content Include="baseline\Python.Runtime.dll">
+    <Content Include="..\..\pythonnet\runtime\Python.Runtime.dll">
       <CopyToOutputDirectory>PreserveNewest</CopyToOutputDirectory>
     </Content>
   </ItemGroup>
 
   <ItemGroup>
-    <Reference Include="baseline/Python.Runtime.dll">
+    <Reference Include="..\..\pythonnet\runtime\Python.Runtime.dll">
       <Private>false</Private>
     </Reference>
   </ItemGroup>
