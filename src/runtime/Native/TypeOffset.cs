@@ -166,6 +166,7 @@ namespace Python.Runtime
                 "get_SuppressOverloads",
                 "GetClrType",
                 "getPreload",
+                nameof(CLRModule.ImportExtensions),
                 "Initialize",
                 "InitializeSlots",
                 "ListAssemblies",
