@@ -88,6 +88,67 @@ namespace Python.EmbeddingTest
             }
         }
 
+        [Test]
+        public void TestMixedValue()
+        {
+            var instance = new Overloads();
+            using (Py.GIL())
+            {
+                dynamic callSumWithStrings = PythonEngine.Eval("lambda o: o.Sum(1,'2')");
+                var result = callSumWithStrings(instance.ToPython());
+                Assert.IsTrue(PyString.IsStringType(result));
+                object value;
+                Assert.IsTrue(Converter.ToManagedValue((result as PyObject).Reference, typeof(string), out value, false));
+                Assert.AreEqual("12", value);
+            }
+        }
+
+        [Test]
+        public void TestSumWithEmptyArray()
+        {
+            var instance = new Overloads();
+            using (Py.GIL())
+            {
+                dynamic callSumWithEmptyArray = PythonEngine.Eval("lambda o: o.Sum()");
+                var result = callSumWithEmptyArray(instance.ToPython());
+
+                Assert.IsTrue(PyString.IsStringType(result));
+                object value;
+                Assert.IsTrue(Converter.ToManagedValue((result as PyObject).Reference, typeof(string), out value, false));
+                Assert.AreEqual(string.Empty, value);
+            }
+        }
+        [Test]
+        public void TestSum2WithNoParameters()
+        {
+            var instance = new Overloads();
+            using (Py.GIL())
+            {
+                dynamic callSum2WithNoParams = PythonEngine.Eval("lambda o: o.Sum2()");
+                var result = callSum2WithNoParams(instance.ToPython());
+
+                Assert.IsTrue(PyInt.IsIntType(result));
+                object value;
+                Assert.IsTrue(Converter.ToManagedValue((result as PyObject).Reference, typeof(int), out value, false));
+                Assert.AreEqual(0, value);
+            }
+        }
+
+        [Test]
+        public void TestSumWithUnsupportedTypes()
+        {
+            var instance = new Overloads();
+            using (Py.GIL())
+            {
+                dynamic callSumWithUnsupportedTypes = PythonEngine.Eval("lambda o: o.Sum(1.5, '2')");
+
+                Assert.Throws<PythonException>(() =>
+                {
+                    var result = callSumWithUnsupportedTypes(instance.ToPython());
+                });
+            }
+        }
+
         public class Overloads
         {
             public double Sum(double d, long l)
