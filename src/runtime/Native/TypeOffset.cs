@@ -170,6 +170,7 @@ namespace Python.Runtime
                 "Initialize",
                 "InitializeSlots",
                 "ListAssemblies",
+                "ImportExtensions",
                 nameof(CLRModule._load_clr_module),
                 nameof(CLRModule._add_pending_namespaces),
                 "Release",

@@ -2,7 +2,6 @@ using System;
 using System.Collections.Generic;
 using System.Reflection;
 using System.Runtime.CompilerServices;
-using System.Text;
 
 namespace Python.Runtime
 {
@@ -14,11 +13,11 @@ namespace Python.Runtime
         /// <summary>
         /// Keeps track of currently imported extension types
         /// </summary>
-        private static HashSet<ClassBase> extensionTypes = new HashSet<ClassBase>();
+        private static readonly HashSet<ClassBase> extensionTypes = new();
         /// <summary>
         /// Caches method objects by name and concrete instance type
         /// </summary>
-        private static Dictionary<string, Dictionary<Type, MethodObject>> cache = new Dictionary<string, Dictionary<Type, MethodObject>>();
+        private static readonly Dictionary<Type, Dictionary<string, MethodObject>> cache = new();
 
         /// <summary>
         /// Registers an extension type, making its extension methods available.
@@ -27,12 +26,13 @@ namespace Python.Runtime
         /// <param name="classBase">Class to be registered</param>
         internal static void RegisterExtensionType(ClassBase classBase)
         {
+            cache.Remove(classBase.type.Value);
             if (extensionTypes.Contains(classBase))
             {
                 return;
             }
 
-            extensionTypes.Add(classBase);
+            extensionTypes.Add(classBase);            
         }
 
         /// <summary>
@@ -52,15 +52,41 @@ namespace Python.Runtime
         /// <param name="type">Type of the instance being called</param>
         /// <param name="name">Name of the method being called</param>
         /// <returns>Method object for an extension or null if there isn't one</returns>
-        internal static MethodObject GetExtensionMethodObject(Type type, string name)
+        internal static MethodObject? GetExtensionMethodObject(Type type, string name)
         {
+            if (TryGetFromCache(type, name, out MethodObject? existingMethodObj))
+            {
+                return existingMethodObj;
+            }            
+
             var extensionMethods = GetExtensionMethods(type, name).ToArray();
             if (extensionMethods.Length > 0)
             {
-                return new MethodObject(type, name, extensionMethods);
+                var newMethodObj = new MethodObject(type, name, extensionMethods);
+                CacheMethodObject(type, name, newMethodObj);
+                return newMethodObj;
             }
 
             return null;
+        }
+
+        private static bool TryGetFromCache(Type type, string name, out MethodObject? methodObject)
+        {
+            methodObject = null;
+            bool result = cache.TryGetValue(type, out var nameDict) && nameDict.TryGetValue(name, out methodObject);
+
+            return result;
+        }
+
+        private static void CacheMethodObject(Type type, string name, MethodObject methodObj)
+        {
+            if (!cache.TryGetValue(type, out var methodInfo))
+            {
+                methodInfo = new Dictionary<string, MethodObject>();
+                cache[type] = methodInfo;
+            }
+
+            methodInfo[name] = methodObj;
         }
 
         private static List<MethodInfo> GetExtensionMethods(Type type, string name)
