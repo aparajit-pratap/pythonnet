@@ -41,13 +41,13 @@ namespace Python.EmbeddingTest
         public void TestDecodeDictionary()
         {
             PythonEngine.Exec($@"
-from System.Collections.Generic import *
+from System.Collections.Generic import Dictionary
 d = Dictionary[str,int]({{ 'one': 1 }})
 assert d['one'] == 1
 ");
         }
 
-        private void DictionaryAssert(IDictionary expected, IDictionary actual)
+        private static void DictionaryAssert(IDictionary expected, IDictionary actual)
         {
             Assert.AreEqual(expected.Count, actual.Count);
             foreach (var key in expected.Keys)
