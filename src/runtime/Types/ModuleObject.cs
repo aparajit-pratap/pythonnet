@@ -118,6 +118,12 @@ namespace Python.Runtime
             {
                 var m = ModuleObject.Create(qname);
                 this.StoreAttribute(name, m.Borrow());
+                if (CLRModule.preload)
+                {
+                    var o = (ModuleObject)GetManagedObject(m.Borrow());
+                    o.LoadNames();
+                    new NewReference(o.__all__);
+                }
                 return m;
             }
 
@@ -322,6 +328,12 @@ namespace Python.Runtime
 
             if (attr.IsNull())
             {
+                var temp = Runtime.PyObject_GenericGetAttr(ob, key);
+                if (!temp.IsNull())
+                {
+                    return temp;
+                }
+
                 Exceptions.SetError(Exceptions.AttributeError, name);
                 return default;
             }

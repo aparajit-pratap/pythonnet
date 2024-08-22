@@ -382,12 +382,12 @@ namespace Python.Runtime
                 int nslen = nsname.Length;
                 foreach (string key in namespaces.Keys)
                 {
-                    if (key.Length > nslen && key.StartsWith(nsname))
+                    if (key.Length > nslen + 1 && key.StartsWith(nsname + "."))
                     {
-                        //string tail = key.Substring(nslen);
-                        if (key.IndexOf('.') == -1)
+                        string tail = key.Substring(nslen + 1);
+                        if (tail.IndexOf('.') == -1)
                         {
-                            names.Add(key);
+                            names.Add(tail);
                         }
                     }
                 }
