@@ -1,0 +1,60 @@
+version: 3.1.0
+pipeline_os: linux
+main_branch: dynamo_py3
+update_changelog_on_release: true
+create_github_release: true
+create_pr_release_to_master: true
+
+env:
+  # - SLACK_QUANTUM_BUILD_CHANNEL: dynamo-vera-notify
+
+# code_analysis:
+#   sonarqube:
+#     source_encoding: UTF-8
+#     src: .
+#     coverage_reports:
+#       - coverage.info
+
+build:
+  -
+    customized_builder_image:
+      registry: artifactory
+      url: artifactory.dev.adskengineer.net/dynamo/pythonnet-build:latest
+    scripts:
+      - scripts/install.sh
+
+ci_test:
+  tests:
+    -
+      customized_builder_image:
+        registry: artifactory
+        url: artifactory.dev.adskengineer.net/dynamo/pythonnet-build:latest
+      scripts:
+        - scripts/install.sh
+        - scripts/test.sh
+
+  publish_html_reports:
+    -
+      report_name: Embed Tests
+      report_index_file: src/embed_tests/TestResults/embed_tests-output.html
+      report_dir: .
+    -
+      report_name: Python Tests Runner
+      report_index_file: src/python_tests_runner/TestResults/python_tests_runner-output.html
+      report_dir: .
+
+soc2:
+  harmony:
+    allow_branches:
+      - PR-
+      - dynamo_master
+      - dynamo_py3
+    third_party_lib_paths:
+      - build\lib\pythonnet\runtime
+    analyze_results	: true
+
+deployment:
+  -
+    type: github
+    outputs:
+      - build\lib\pythonnet\runtime\Python.Runtime.dll
