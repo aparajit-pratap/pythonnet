@@ -202,14 +202,15 @@ namespace Python.Runtime
             foreach (var name in AssemblyManager.GetNames(module.moduleName))
             {
                 var attribute = module.GetAttribute(name, false);
-                var managedObj = GetManagedObject(attribute.Borrow());
-                if (managedObj is ClassBase)
+                if (attribute.IsNull())
                 {
-                    var classBase = managedObj as ClassBase;
-                    if (classBase != null && ExtensionManager.IsExtensionType(classBase))
-                    {
-                        ExtensionManager.RegisterExtensionType(classBase);
-                    }
+                    continue;
+                }
+
+                var managedObj = GetManagedObject(attribute.Borrow());
+                if (managedObj is ClassBase classBase && ExtensionManager.IsExtensionType(classBase))
+                {
+                    ExtensionManager.RegisterExtensionType(classBase);
                 }
             }
         }

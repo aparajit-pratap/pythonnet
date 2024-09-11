@@ -353,10 +353,10 @@ namespace Python.Runtime
         /// <summary>
         /// Returns the current list of valid names for the input namespace.
         /// </summary>
-        public static List<string> GetNames(string nsname)
+        public static HashSet<string> GetNames(string nsname)
         {
             //Dictionary<string, int> seen = new Dictionary<string, int>();
-            var names = new List<string>(8);
+            var names = new HashSet<string>();
 
             List<string>? g = GenericUtil.GetGenericBaseNames(nsname);
             if (g != null)
