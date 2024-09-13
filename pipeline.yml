@@ -40,6 +40,10 @@ ci_test:
       report_index_file: src/embed_tests/TestResults/embed_tests-output.html
       report_dir: .
     -
+      report_name: Module Tests
+      report_index_file: src/module_tests/TestResults/module_tests-output.html
+      report_dir: .
+    -
       report_name: Python Tests Runner
       report_index_file: src/python_tests_runner/TestResults/python_tests_runner-output.html
       report_dir: .

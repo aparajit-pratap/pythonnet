@@ -48,6 +48,8 @@ Project("{2150E333-8FDC-42A3-9474-1A3956D46DE8}") = "Build", "Build", "{142A6752
 		Directory.Build.props = Directory.Build.props
 	EndProjectSection
 EndProject
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Python.ModuleTest", "src\module_tests\Python.ModuleTest.csproj", "{CF304482-EB87-4966-828A-437CB53FC9ED}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|Any CPU = Debug|Any CPU
@@ -187,6 +189,24 @@ Global
 		{35CBBDEB-FC07-4D04-9D3E-F88FC180110B}.TraceAlloc|x64.Build.0 = Debug|Any CPU
 		{35CBBDEB-FC07-4D04-9D3E-F88FC180110B}.TraceAlloc|x86.ActiveCfg = Debug|Any CPU
 		{35CBBDEB-FC07-4D04-9D3E-F88FC180110B}.TraceAlloc|x86.Build.0 = Debug|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.Debug|x64.ActiveCfg = Debug|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.Debug|x64.Build.0 = Debug|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.Debug|x86.ActiveCfg = Debug|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.Debug|x86.Build.0 = Debug|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.Release|Any CPU.Build.0 = Release|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.Release|x64.ActiveCfg = Release|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.Release|x64.Build.0 = Release|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.Release|x86.ActiveCfg = Release|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.Release|x86.Build.0 = Release|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.TraceAlloc|Any CPU.ActiveCfg = Debug|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.TraceAlloc|Any CPU.Build.0 = Debug|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.TraceAlloc|x64.ActiveCfg = Debug|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.TraceAlloc|x64.Build.0 = Debug|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.TraceAlloc|x86.ActiveCfg = Debug|Any CPU
+		{CF304482-EB87-4966-828A-437CB53FC9ED}.TraceAlloc|x86.Build.0 = Debug|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

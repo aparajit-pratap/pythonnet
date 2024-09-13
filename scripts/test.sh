@@ -3,6 +3,9 @@ export PYTHONNET_PYDLL=$(python3 -m find_libpython)
 dotnet test --logger "html;verbosity=detailed;logfilename=embed_tests-output.html" -p:targetframeworks=net6.0 src/embed_tests/
 retVal=$?
 
+dotnet test --logger "html;verbosity=detailed;logfilename=module_tests-output.html" -p:targetframeworks=net6.0 src/module_tests/
+retVal=$(($retVal || $?))
+
 # python3 -m pytest --runtime coreclr
 # retVal=$(($retVal || $?))
 
