@@ -8,6 +8,12 @@ create_pr_release_to_master: true
 env:
   - GITHUB_ACCESS_TOKEN_ID: github_access_token_acsbuildguy
   # - SLACK_QUANTUM_BUILD_CHANNEL: dynamo-vera-notify
+  
+jenkins_creds:
+  -
+    type: secretText
+    credentialsId: svc_d_dyntest-apikey-artifactory-dynamo-team-nuget
+    secretText: API_KEY
 
 # code_analysis:
 #   sonarqube:
@@ -20,7 +26,7 @@ build:
   -
     customized_builder_image:
       registry: artifactory
-      url: artifactory.dev.adskengineer.net/dynamo/pythonnet-build:latest
+      url: artifactory.dev.adskengineer.net/dynamo/pythonnet-build:2.0.1
     scripts:
       - scripts/install.sh
 
@@ -29,7 +35,7 @@ ci_test:
     -
       customized_builder_image:
         registry: artifactory
-        url: artifactory.dev.adskengineer.net/dynamo/pythonnet-build:latest
+        url: artifactory.dev.adskengineer.net/dynamo/pythonnet-build:2.0.1
       scripts:
         - scripts/install.sh
         - scripts/test.sh
@@ -59,6 +65,22 @@ soc2:
     analyze_results	: true
 
 deployment:
+  # CILibrary doesn't yet support signing on Linux. I tried to get this going, but haven't figured it out yet. See the vera/nuget-deploy branch on the CILibrary repo.
+  # -
+  #   type: sign
+  #   files_to_sign:
+  #     - pythonnet/runtime/Python.Runtime.dll
+  -
+    type: customized
+    allow_branches: dynamo_py3
+    customized_builder_image:
+      registry: artifactory
+      url: artifactory.dev.adskengineer.net/dynamo/pythonnet-build:2.0.1
+    scripts:
+      - dotnet pack --configuration Release --version-suffix preview-ADSK-$(date +%s) --output "Release-Preview"
+      - dotnet nuget push --source "Dynamo Artifactory" --api-key ${API_KEY} Release-Preview/*.nupkg
+      - dotnet nuget push --skip-duplicate --source "Dynamo Artifactory" --api-key ${API_KEY} Release-Preview/*.snupkg
+
   -
     type: github
     outputs:

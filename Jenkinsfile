@@ -1,6 +1,6 @@
 #!/usr/bin/env groovy
 
 @Library('PSL@master')
-@Library('CILibrary@CBP/stable') _
+@Library('CILibrary@vera/linux-nuget') _
 
 StartPipeline()
