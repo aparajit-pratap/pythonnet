@@ -308,7 +308,7 @@ namespace Python.Runtime
             return (fi.IsPublic || fi.IsFamily || fi.IsFamilyOrAssembly);
         }
 
-        internal static bool ShouldBindProperty(PropertyInfo pi, Type type)
+        internal static bool ShouldBindProperty(PropertyInfo pi)
         {
                 MethodInfo? mm;
                 try
@@ -331,11 +331,6 @@ namespace Python.Runtime
                     return false;
                 }
 
-                if(mm.DeclaringType != type)
-                {
-                    return false;
-                }
-
                 return ShouldBindMethod(mm);
         }
 
@@ -347,16 +342,17 @@ namespace Python.Runtime
         private static ClassInfo GetClassInfo(Type type, ClassBase impl)
         {
             var ci = new ClassInfo();
-            var methods = new Dictionary<string, List<MethodBase>>();
             MethodInfo meth;
             ExtensionType ob;
             string name;
             Type tp;
             int i, n;
+            IEnumerable<MemberInfo> filteredMembers;
 
             MemberInfo[] info = type.GetMembers(BindingFlags);
             var local = new HashSet<string>();
             var items = new List<MemberInfo>();
+            var methods = new List<MethodBase>();
             MemberInfo m;
 
             // Loop through once to find out which names are declared
@@ -441,127 +437,146 @@ namespace Python.Runtime
                 }
             }
 
-            for (i = 0; i < items.Count; i++)
+            // Group by member name to sort out overloads and hiding by inheritance.
+            var memberOptions = items.GroupBy(i => i.Name);
+
+            foreach (var memberGroup in memberOptions)
             {
-                var mi = (MemberInfo)items[i];
+                name = memberGroup.Key;
 
-                switch (mi.MemberType)
+                // Filter out members that are hidden by inheritance.
+                filteredMembers = memberGroup.Where(m1 =>
                 {
-                    case MemberTypes.Method:
-                        meth = (MethodInfo)mi;
-                        if (!ShouldBindMethod(meth))
+                    if (m1.MemberType == MemberTypes.Method || m1.MemberType == MemberTypes.Constructor)
+                    {
+                        // All constructors and methods stay, as the logic for dealing with overloads lives in MethodBinder, which also handles hiding.
+                        return true;
+                    }
+
+                    var declaringType = m1.DeclaringType;
+
+                    foreach (var m2 in memberGroup)
+                    {
+                        if (m2.DeclaringType != declaringType && declaringType.IsAssignableFrom(m2.DeclaringType))
                         {
-                            continue;
+                            // Another member in the group will hide this member because it is in a type that derives from this member's type.
+                            return false;
                         }
-                        name = meth.Name;
+                    }
 
-                        //TODO mangle?
-                        if (name == "__init__" && !impl.HasCustomNew())
-                            continue;
+                    return true;
+                });
 
-                        if (!methods.TryGetValue(name, out var methodList))
-                        {
-                            methodList = methods[name] = new List<MethodBase>();
-                        }
-                        methodList.Add(meth);
-                        continue;
-
-                    case MemberTypes.Constructor when !impl.HasCustomNew():
-                        var ctor = (ConstructorInfo)mi;
-                        if (ctor.IsStatic)
-                        {
-                            continue;
-                        }
-
-                        name = "__init__";
-                        if (!methods.TryGetValue(name, out methodList))
-                        {
-                            methodList = methods[name] = new List<MethodBase>();
-                        }
-                        methodList.Add(ctor);
-                        continue;
-
-                    case MemberTypes.Property:
-                        var pi = (PropertyInfo)mi;
-
-                        if(!ShouldBindProperty(pi, type))
-                        {
-                            continue;
-                        }
-
-                        // Check for indexer
-                        ParameterInfo[] args = pi.GetIndexParameters();
-                        if (args.GetLength(0) > 0)
-                        {
-                            Indexer? idx = ci.indexer;
-                            if (idx == null)
+                methods.Clear();
+                
+                foreach (var mi in filteredMembers)
+                {
+                    switch (mi.MemberType)
+                    {
+                        case MemberTypes.Method:
+                            meth = (MethodInfo)mi;
+                            if (!ShouldBindMethod(meth))
                             {
-                                ci.indexer = new Indexer();
-                                idx = ci.indexer;
+                                continue;
                             }
-                            idx.AddProperty(pi);
-                            continue;
-                        }
 
-                        ob = new PropertyObject(pi);
-                        ci.members[pi.Name] = ob.AllocObject();
-                        continue;
+                            //TODO mangle?
+                            if (name == "__init__" && !impl.HasCustomNew())
+                                continue;
 
-                    case MemberTypes.Field:
-                        var fi = (FieldInfo)mi;
-                        if (!ShouldBindField(fi))
-                        {
+                            methods.Add(meth);
                             continue;
-                        }
-                        ob = new FieldObject(fi);
-                        ci.members[mi.Name] = ob.AllocObject();
-                        continue;
 
-                    case MemberTypes.Event:
-                        var ei = (EventInfo)mi;
-                        if (!ShouldBindEvent(ei))
-                        {
-                            continue;
-                        }
-                        ob = ei.AddMethod.IsStatic
-                            ? new EventBinding(ei)
-                            : new EventObject(ei);
-                        ci.members[ei.Name] = ob.AllocObject();
-                        continue;
+                        case MemberTypes.Constructor when !impl.HasCustomNew():
+                            var ctor = (ConstructorInfo)mi;
+                            if (ctor.IsStatic)
+                            {
+                                continue;
+                            }
 
-                    case MemberTypes.NestedType:
-                        tp = (Type)mi;
-                        if (!(tp.IsNestedPublic || tp.IsNestedFamily ||
-                              tp.IsNestedFamORAssem))
-                        {
+                            name = "__init__";
+                            methods.Add(ctor);
                             continue;
-                        }
-                        // Note the given instance might be uninitialized
-                        var pyType = GetClass(tp);
-                        // make a copy, that could be disposed later
-                        ci.members[mi.Name] = new ReflectedClrType(pyType);
-                        continue;
+
+                        case MemberTypes.Property:
+                            var pi = (PropertyInfo)mi;
+
+                            if (!ShouldBindProperty(pi))
+                            {
+                                continue;
+                            }
+
+                            // Check for indexer
+                            ParameterInfo[] args = pi.GetIndexParameters();
+                            if (args.GetLength(0) > 0)
+                            {
+                                Indexer? idx = ci.indexer;
+                                if (idx == null)
+                                {
+                                    ci.indexer = new Indexer();
+                                    idx = ci.indexer;
+                                }
+                                idx.AddProperty(pi);
+                                continue;
+                            }
+                            ob = new PropertyObject(pi);
+                            ci.members[name] = ob.AllocObject();
+                            continue;
+
+                        case MemberTypes.Field:
+                            var fi = (FieldInfo)mi;
+                            if (!ShouldBindField(fi))
+                            {
+                                continue;
+                            }
+                            ob = new FieldObject(fi);
+                            ci.members[name] = ob.AllocObject();
+                            continue;
+
+                        case MemberTypes.Event:
+                            var ei = (EventInfo)mi;
+                            if (!ShouldBindEvent(ei))
+                            {
+                                continue;
+                            }
+                            ob = ei.AddMethod.IsStatic
+                                ? new EventBinding(ei)
+                                : new EventObject(ei);
+                            ci.members[name] = ob.AllocObject();
+                            continue;
+
+                        case MemberTypes.NestedType:
+                            tp = (Type)mi;
+                            if (!(tp.IsNestedPublic || tp.IsNestedFamily ||
+                                  tp.IsNestedFamORAssem))
+                            {
+                                continue;
+                            }
+                            // Note the given instance might be uninitialized
+                            var pyType = GetClass(tp);
+                            // make a copy, that could be disposed later
+                            ci.members[name] = new ReflectedClrType(pyType);
+                            continue;
+                    }
                 }
-            }
 
-            foreach (var iter in methods)
-            {
-                name = iter.Key;
-                var mlist = iter.Value.ToArray();
-
-                ob = new MethodObject(type, name, mlist);
-                ci.members[name] = ob.AllocObject();
-                if (mlist.Any(OperatorMethod.IsOperatorMethod))
+                if (methods.Count > 0)
                 {
-                    string pyName = OperatorMethod.GetPyMethodName(name);
-                    string pyNameReverse = OperatorMethod.ReversePyMethodName(pyName);
-                    OperatorMethod.FilterMethods(mlist, out var forwardMethods, out var reverseMethods);
-                    // Only methods where the left operand is the declaring type.
-                    if (forwardMethods.Length > 0)
-                        ci.members[pyName] = new MethodObject(type, name, forwardMethods).AllocObject();
-                    // Only methods where only the right operand is the declaring type.
-                    if (reverseMethods.Length > 0)
-                        ci.members[pyNameReverse] = new MethodObject(type, name, reverseMethods, argsReversed: true).AllocObject();
+                    var methodsArray = methods.ToArray();
+                    ob = new MethodObject(type, memberGroup.Key, methodsArray);
+                    ci.members[name] = ob.AllocObject();
+                    if (methods.Any(OperatorMethod.IsOperatorMethod))
+                    {
+                        string pyName = OperatorMethod.GetPyMethodName(name);
+                        string pyNameReverse = OperatorMethod.ReversePyMethodName(pyName);
+                        OperatorMethod.FilterMethods(methodsArray, out var forwardMethods, out var reverseMethods);
+                        // Only methods where the left operand is the declaring type.
+                        if (forwardMethods.Length > 0)
+                            ci.members[pyName] = new MethodObject(type, name, forwardMethods).AllocObject();
+                        // Only methods where only the right operand is the declaring type.
+                        if (reverseMethods.Length > 0)
+                            ci.members[pyNameReverse] = new MethodObject(type, name, reverseMethods, argsReversed: true).AllocObject();
+                    }
                 }
             }
 

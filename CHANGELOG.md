@@ -9,6 +9,7 @@ This document follows the conventions laid out in [Keep a CHANGELOG][].
 
 ### Added
 
+-   Added support for hiding members from inherited classes.
 -   Added cache for extension methods. See (https://git.autodesk.com/Dynamo/pythonnet/pull/50)
 -   Added extensions support. See (https://git.autodesk.com/Dynamo/pythonnet/pull/49)
 -   Added support for decoding dictionaries.

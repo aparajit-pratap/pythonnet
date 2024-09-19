@@ -8,33 +8,65 @@ namespace Python.EmbeddingTest
 {
     public class TestPropertiesBase
     {
-        public string PropertyA { get { return "PropertyA"; } set { } }
-        public double PropertyB { get { return 1.1; } }
-        public int PropertyC { set { } }
+        public string ChangePropertyType { get => "ChangePropertyType"; set { } }
+
+        public double InheritedGetter { get => 1.1; }
+
+        public int InheritedSetter { set { } }
+
+        public double HidePropertyWithMethod { get => 1.1; }
+
+        public int HiddenMethod()
+        {
+            return 0;
+        }
+
+        public int OverloadedMethod(int a)
+        {
+            return a;
+        }
+
+        public int OverloadedMethod(int a, int b)
+        {
+            return a + b;
+        }
 
         public string this[int flag]
         {
-            // using get accessor 
-            get
-            {
-                return "FromBase";
-            }
-
+            get => "FromBase";
         }
     }
 
     public class TestPropertiesDerived : TestPropertiesBase
     {
-        public new int PropertyA { get { return 0; } set { } }
-        public int PropertyD { get { return 0; } }
+        public new int ChangePropertyType { get => 0; set { } }
+
+        public int OnlyInDerived { get => 0; }
+
+        public new string HiddenMethod()
+        {
+            return "HiddenMethod";
+        }
+
+        public new string HidePropertyWithMethod()
+        {
+            return "HidePropertyWithMethod";
+        }
+
+        public new int OverloadedMethod(int a)
+        {
+            return 7;
+        }
+
+        public int OverloadedMethod(int a, string b)
+        {
+            return a + int.Parse(b);
+        }
 
         public new string this[int flag]
         {
             // using get accessor 
-            get
-            {
-                return "FromDerived";
-            }
+            get => "FromDerived";
         }
     }
 
@@ -60,9 +92,9 @@ namespace Python.EmbeddingTest
             using (PyModule scope = Py.CreateScope())
             {
                 scope.Set("b", b);
-                scope.Exec($"result=b.PropertyA");
+                scope.Exec($"result=b.ChangePropertyType");
                 var result = scope.Get("result").ToString();
-                Assert.AreEqual(result, "PropertyA");
+                Assert.AreEqual("ChangePropertyType", result);
             }
         }
 
@@ -78,7 +110,7 @@ namespace Python.EmbeddingTest
                 Exception expected = null;
                 try
                 {
-                    scope.Exec($"result=b.PropertyD");
+                    scope.Exec($"result=b.OnlyInDerived");
                 }
                 catch (Exception e)
                 {
@@ -96,11 +128,41 @@ namespace Python.EmbeddingTest
             using (PyModule scope = Py.CreateScope())
             {
                 scope.Set("d", d);
-                scope.Exec($"result=d.PropertyB;" +
-                    $"d.PropertyC=4;");
+                scope.Exec($"result=d.InheritedGetter;" +
+                    $"d.InheritedSetter=4;");
 
                 var result = scope.Get("result").ToString();
-                Assert.AreEqual(result, "1.1");
+                Assert.AreEqual("1.1", result);
+            }
+        }
+
+        [Test]
+        [Description("Verify that the derived class can't call a hidden method from its base class")]
+        public void TestDerivedCannotCallHiddenMethod()
+        {
+            var d = new TestPropertiesDerived();
+            using (PyModule scope = Py.CreateScope())
+            {
+                scope.Set("d", d);
+                scope.Exec($"result=d.HiddenMethod();");
+
+                var result = scope.Get("result").ToString();
+                Assert.AreEqual("HiddenMethod", result);
+            }
+        }
+
+        [Test]
+        [Description("Verify that the derived class can hide a property from its base class with a method")]
+        public void TestDerivedHidesPropertyWithMethod()
+        {
+            var d = new TestPropertiesDerived();
+            using (PyModule scope = Py.CreateScope())
+            {
+                scope.Set("d", d);
+                scope.Exec($"result=d.HidePropertyWithMethod();");
+
+                var result = scope.Get("result").ToString();
+                Assert.AreEqual("HidePropertyWithMethod", result);
             }
         }
 
@@ -117,7 +179,7 @@ namespace Python.EmbeddingTest
                 scope.Set("test", test);
                 try
                 {
-                    scope.Exec($"d.PropertyA=test");
+                    scope.Exec($"d.ChangePropertyType=test");
                 }
                 catch (Exception e)
                 {
@@ -136,16 +198,40 @@ namespace Python.EmbeddingTest
             using (PyModule scope = Py.CreateScope())
             {
                 scope.Set("d", d);
-                scope.Exec($"result1=d.PropertyA;" +
-                    $"result2=d.PropertyD;");
+                scope.Exec($"result1=d.ChangePropertyType;" +
+                    $"result2=d.OnlyInDerived;");
 
                 var result1 = scope.Get("result1").ToString();
                 var result2 = scope.Get("result2").ToString();
 
-                Assert.AreEqual(result1, "0");
-                Assert.AreEqual(result2, "0");
+                Assert.AreEqual("0", result1);
+                Assert.AreEqual("0", result2);
             }
         }
+
+        [Test]
+        [Description("Verify that the derived class can hide overloaded methods and non-overloaded methods are still visible")]
+        public void TestOverloadedMethodsAreHiddenCorrectly()
+        {
+            var d = new TestPropertiesDerived();
+            using (PyModule scope = Py.CreateScope())
+            {
+                scope.Set("d", d);
+                scope.Exec($"result1=d.OverloadedMethod(4);" +
+                    $"result2=d.OverloadedMethod(4, 4);" +
+                    $"result3=d.OverloadedMethod(4, '4');");
+
+
+                var result1 = scope.Get("result1").ToString();
+                var result2 = scope.Get("result2").ToString();
+                var result3 = scope.Get("result3").ToString();
+
+                Assert.AreEqual("7", result1);
+                Assert.AreEqual("8", result2);
+                Assert.AreEqual("8", result3);
+            }
+        }
+
         [Test]
         [Description("Verify that the each class can call its indexer")]
         public void TestCanCallIndexerProperty()
@@ -162,8 +248,8 @@ namespace Python.EmbeddingTest
                 var result1 = scope.Get("result1").ToString();
                 var result2 = scope.Get("result2").ToString();
 
-                Assert.AreEqual(result1, "FromDerived");
-                Assert.AreEqual(result2, "FromBase");
+                Assert.AreEqual("FromDerived", result1);
+                Assert.AreEqual("FromBase", result2);
             }
         }
     }
