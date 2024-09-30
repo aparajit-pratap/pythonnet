@@ -6,8 +6,8 @@ retVal=$?
 dotnet test --logger "html;verbosity=detailed;logfilename=module_tests-output.html" -p:targetframeworks=net6.0 src/module_tests/
 retVal=$(($retVal || $?))
 
-# python3 -m pytest --runtime coreclr
-# retVal=$(($retVal || $?))
+python3 -m pytest --runtime coreclr
+retVal=$(($retVal || $?))
 
 dotnet test --logger "html;verbosity=detailed;logfilename=python_tests_runner-output.html" -p:targetframeworks=net6.0 src/python_tests_runner/
 retVal=$(($retVal || $?))

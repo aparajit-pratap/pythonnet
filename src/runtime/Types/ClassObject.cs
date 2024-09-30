@@ -113,25 +113,23 @@ namespace Python.Runtime
                 return newRef;
             }
 
-            NewReference nullRef = NewReference.DangerousFromPointer(IntPtr.Zero);
             if (!Runtime.PyString_Check(key))
             {
                 Exceptions.SetError(Exceptions.TypeError, "string expected");
-                return nullRef;
+                return NewReference.DangerousFromPointer(IntPtr.Zero);
             }
 
             string? name = Runtime.GetManagedString(key);
             if (name is null)
             {
                 Exceptions.SetError(Exceptions.ValueError, "missing managed string key");
-                return nullRef;
+                return NewReference.DangerousFromPointer(IntPtr.Zero);
             }
 
-            CLRObject? self = GetManagedObject(ob) as CLRObject;
-            if (self is null)
+            if (GetManagedObject(ob) is not CLRObject self)
             {
                 Exceptions.SetError(Exceptions.ValueError, "missing CLR object");
-                return nullRef;
+                return NewReference.DangerousFromPointer(IntPtr.Zero);
             }
 
             var methodObject = ExtensionManager.GetExtensionMethodObject(self.inst.GetType(), name);
@@ -142,14 +140,14 @@ namespace Python.Runtime
                 var binding = new MethodBinding(methodObject, PyObject.FromNullableReference(ob));
 
                 //TODO
-                //Investigate why we are missing PyObject_GenericHasAttr which would help us here. 
-                //PyObject_GenericGetAttr sets an error in Python when the attribute is not found.                
+                //Investigate why we are missing PyObject_GenericHasAttr which would help us here.
+                //PyObject_GenericGetAttr sets an error in Python when the attribute is not found.
                 //However we need to do this check first because an existing attribute has priority.
                 Runtime.PyErr_Clear();
                 return binding.Alloc();
             }
 
-            return nullRef;
+            return newRef;
         }
 
         /// <summary>

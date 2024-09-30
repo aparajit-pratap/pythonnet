@@ -209,7 +209,8 @@ namespace Python.Runtime
                     disposeList.Add(unboundArgs);
                     args = unboundArgs;
                 }
-                else if (target is not null && self.m.IsStatic() && !self.m.IsOperator())
+                else if (target is not null && self.m.IsStatic() && !self.m.IsOperator()
+                    && self.m.info.Any(i => i.IsDefined(typeof(System.Runtime.CompilerServices.ExtensionAttribute), false)))
                 {
                     // This is the scenario we are calling an extension method.
                     // The target should be passed as the first argument of the call.
@@ -222,7 +223,7 @@ namespace Python.Runtime
                         Runtime.PyTuple_SetItem(newArgs.Borrow(), i + 1, item);
                     }
                     args = newArgs.Borrow();
-                    disposeList.Add(newArgs.MoveToPyObject());                    
+                    disposeList.Add(newArgs.MoveToPyObject());
                 }
 
                 // if the class is a IPythonDerivedClass and target is not the same as self.targetType

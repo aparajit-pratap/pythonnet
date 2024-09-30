@@ -3,7 +3,6 @@ using System.Collections.Generic;
 using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
-using System.Runtime.InteropServices;
 using System.Security;
 
 using Python.Runtime.StateSerialization;
@@ -37,10 +36,10 @@ namespace Python.Runtime
         private static readonly Type dtype;
 
         private static readonly MethodInfo enterMethodInfo =
-            typeof(ClassManager).GetMethod(nameof(OnEnter));
+            typeof(WithExtensions).GetMethod(nameof(WithExtensions.OnEnter));
 
         private static readonly MethodInfo exitMethodInfo =
-            typeof(ClassManager).GetMethod(nameof(OnExit));
+            typeof(WithExtensions).GetMethod(nameof(WithExtensions.OnExit));
 
         private const string EnterMethodName = "__enter__";
         private const string ExitMethodName = "__exit__";
@@ -342,6 +341,7 @@ namespace Python.Runtime
         private static ClassInfo GetClassInfo(Type type, ClassBase impl)
         {
             var ci = new ClassInfo();
+            var methods = new Dictionary<string, List<MethodBase>>();
             MethodInfo meth;
             ExtensionType ob;
             string name;
@@ -352,7 +352,6 @@ namespace Python.Runtime
             MemberInfo[] info = type.GetMembers(BindingFlags);
             var local = new HashSet<string>();
             var items = new List<MemberInfo>();
-            var methods = new List<MethodBase>();
             MemberInfo m;
 
             // Loop through once to find out which names are declared
@@ -453,6 +452,12 @@ namespace Python.Runtime
                         return true;
                     }
 
+                    if (m1 is PropertyInfo pi && pi.GetIndexParameters().GetLength(0) > 0)
+                    {
+                        // Indexers are pairs of methods (get/set). Each method may have overloads and is handled in its own MethodBinder.
+                        return true;
+                    }
+
                     var declaringType = m1.DeclaringType;
 
                     foreach (var m2 in memberGroup)
@@ -467,8 +472,6 @@ namespace Python.Runtime
                     return true;
                 });
 
-                methods.Clear();
-                
                 foreach (var mi in filteredMembers)
                 {
                     switch (mi.MemberType)
@@ -484,7 +487,11 @@ namespace Python.Runtime
                             if (name == "__init__" && !impl.HasCustomNew())
                                 continue;
 
-                            methods.Add(meth);
+                            if (!methods.TryGetValue(name, out var methodList))
+                            {
+                                methodList = methods[name] = new List<MethodBase>();
+                            }
+                            methodList.Add(meth);
                             continue;
 
                         case MemberTypes.Constructor when !impl.HasCustomNew():
@@ -495,7 +502,11 @@ namespace Python.Runtime
                             }
 
                             name = "__init__";
-                            methods.Add(ctor);
+                            if (!methods.TryGetValue(name, out methodList))
+                            {
+                                methodList = methods[name] = new List<MethodBase>();
+                            }
+                            methodList.Add(ctor);
                             continue;
 
                         case MemberTypes.Property:
@@ -548,7 +559,7 @@ namespace Python.Runtime
                         case MemberTypes.NestedType:
                             tp = (Type)mi;
                             if (!(tp.IsNestedPublic || tp.IsNestedFamily ||
-                                  tp.IsNestedFamORAssem))
+                                    tp.IsNestedFamORAssem))
                             {
                                 continue;
                             }
@@ -559,24 +570,26 @@ namespace Python.Runtime
                             continue;
                     }
                 }
+            }
 
-                if (methods.Count > 0)
+            foreach (var iter in methods)
+            {
+                name = iter.Key;
+                var mlist = iter.Value.ToArray();
+
+                ob = new MethodObject(type, name, mlist);
+                ci.members[name] = ob.AllocObject();
+                if (mlist.Any(OperatorMethod.IsOperatorMethod))
                 {
-                    var methodsArray = methods.ToArray();
-                    ob = new MethodObject(type, memberGroup.Key, methodsArray);
-                    ci.members[name] = ob.AllocObject();
-                    if (methods.Any(OperatorMethod.IsOperatorMethod))
-                    {
-                        string pyName = OperatorMethod.GetPyMethodName(name);
-                        string pyNameReverse = OperatorMethod.ReversePyMethodName(pyName);
-                        OperatorMethod.FilterMethods(methodsArray, out var forwardMethods, out var reverseMethods);
-                        // Only methods where the left operand is the declaring type.
-                        if (forwardMethods.Length > 0)
-                            ci.members[pyName] = new MethodObject(type, name, forwardMethods).AllocObject();
-                        // Only methods where only the right operand is the declaring type.
-                        if (reverseMethods.Length > 0)
-                            ci.members[pyNameReverse] = new MethodObject(type, name, reverseMethods, argsReversed: true).AllocObject();
-                    }
+                    string pyName = OperatorMethod.GetPyMethodName(name);
+                    string pyNameReverse = OperatorMethod.ReversePyMethodName(pyName);
+                    OperatorMethod.FilterMethods(mlist, out var forwardMethods, out var reverseMethods);
+                    // Only methods where the left operand is the declaring type.
+                    if (forwardMethods.Length > 0)
+                        ci.members[pyName] = new MethodObject(type, name, forwardMethods).AllocObject();
+                    // Only methods where only the right operand is the declaring type.
+                    if (reverseMethods.Length > 0)
+                        ci.members[pyNameReverse] = new MethodObject(type, name, reverseMethods, argsReversed: true).AllocObject();
                 }
             }
 
@@ -599,36 +612,22 @@ namespace Python.Runtime
                 }
             }
 
-            // Dynamically add enter, exit dunder methods to IDisposables so that they 
+            // Dynamically add enter, exit dunder methods to IDisposables so that they
             // can be used in Python "with" statements just like C# using statements.
             bool isDisposable = typeof(IDisposable).IsAssignableFrom(type);
             if (isDisposable)
             {
                 // Add __enter__ and __exit__ methods
                 var mlist = new[] { enterMethodInfo };
-                ob = new MethodObject(type, nameof(OnEnter), mlist);
+                ob = new MethodObject(type, nameof(WithExtensions.OnEnter), mlist);
                 ci.members[EnterMethodName] = ob.AllocObject();
 
                 mlist = new[] { exitMethodInfo };
-                ob = new MethodObject(type, nameof(OnExit), mlist);
+                ob = new MethodObject(type, nameof(WithExtensions.OnExit), mlist);
                 ci.members[ExitMethodName] = ob.AllocObject();
             }
 
             return ci;
-        }
-
-        public static IDisposable OnEnter(IDisposable o)
-        {
-            return o;
-        }
-
-        public static bool OnExit(IDisposable o, PyObject et, PyObject ev, PyObject tb)
-        {
-            o.Dispose();
-            // return false so that if there are any exceptions arising from the body
-            // of the "with" statement in Python, it will be rethrown and bubble up.
-            // returning true will suppress the exceptions if any.
-            return false;
         }
 
         /// <summary>
