@@ -41,6 +41,7 @@
     <Compile Include="test_enum.py" />
     <Compile Include="test_event.py" />
     <Compile Include="test_exceptions.py" />
+    <Compile Include="test_extension.py" />
     <Compile Include="test_field.py" />
     <Compile Include="test_generic.py" />
     <Compile Include="test_import.py" />

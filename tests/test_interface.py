@@ -70,6 +70,13 @@ def test_explicit_cast_to_interface():
     assert hasattr(i2, 'SayHello')
     assert not hasattr(i2, 'HelloProperty')
 
+def test_call_inherited_interface_method():
+    """Test an interface object can call methods declared in a base interface."""
+    from Python.Test import InterfaceTest
+
+    ob = InterfaceTest()
+    hello1 = ob.GetISayHello1()
+    assert hello1.SayHi() == 'hi'
 
 def test_interface_object_returned_through_method():
     """Test interface type is used if method return type is interface"""

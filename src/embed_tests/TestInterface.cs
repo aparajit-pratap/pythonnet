@@ -18,33 +18,30 @@ namespace Python.EmbeddingTest
             PythonEngine.Shutdown();
         }
 
-
         [Test]
-        public void TestInheritedInterfaceVisibility()
+        public void TestInterfaceExtensions()
         {
-            PyDict locals = new PyDict();
+            PyDict locals = new();
             PythonEngine.Exec(@"
 import clr
 clr.AddReference('Python.EmbeddingTest')
+import Python.EmbeddingTest
+clr.ImportExtensions(Python.EmbeddingTest)
 from Python.EmbeddingTest import Concrete
 a = Concrete(10)
-b = Concrete.MakeAsInterface(10)
-result1a = a.Doubled()
-result1b = b.Doubled()
-result2a = a.Property
-result2b = b.Property
+result1 = a.TripledInterface().Property
+result2 = a.TripledConcrete().TripledConcrete().Property
+result3 = a.TripledInterface().TripledInterface().Property
 "
             , locals: locals);
 
-            Assert.IsTrue(PyInt.IsIntType(locals.GetItem("result1a")));
-            Assert.IsTrue(PyInt.IsIntType(locals.GetItem("result1b")));
-            Assert.IsTrue(PyInt.IsIntType(locals.GetItem("result2a")));
-            Assert.IsTrue(PyInt.IsIntType(locals.GetItem("result2b")));
+            Assert.IsTrue(PyInt.IsIntType(locals.GetItem("result1")));
+            Assert.IsTrue(PyInt.IsIntType(locals.GetItem("result2")));
+            Assert.IsTrue(PyInt.IsIntType(locals.GetItem("result3")));
 
-            Assert.AreEqual(20, PyInt.AsInt(locals.GetItem("result1a")).ToInt32());
-            Assert.AreEqual(20, PyInt.AsInt(locals.GetItem("result1b")).ToInt32());
-            Assert.AreEqual(10, PyInt.AsInt(locals.GetItem("result2a")).ToInt32());
-            Assert.AreEqual(10, PyInt.AsInt(locals.GetItem("result2b")).ToInt32());
+            Assert.AreEqual(30, PyInt.AsInt(locals.GetItem("result1")).ToInt32());
+            Assert.AreEqual(90, PyInt.AsInt(locals.GetItem("result2")).ToInt32());
+            Assert.AreEqual(90, PyInt.AsInt(locals.GetItem("result3")).ToInt32());
         }
     }
 
@@ -77,5 +74,22 @@ result2b = b.Property
 
     public interface IInterface : IBase
     {
+    }
+
+    public static class IBaseExtension
+    {
+        public static IBase TripledInterface(this IBase ibase)
+        {
+            var newBase = new Concrete(ibase.Property);
+
+            newBase.Property *= 3;
+
+            return newBase;
+        }
+
+        public static Concrete TripledConcrete(this Concrete ibase)
+        {
+            return (Concrete)TripledInterface(ibase);
+        }
     }
 }

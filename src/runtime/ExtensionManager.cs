@@ -51,23 +51,24 @@ namespace Python.Runtime
         /// </summary>
         /// <param name="type">Type of the instance being called</param>
         /// <param name="name">Name of the method being called</param>
-        /// <returns>Method object for an extension or null if there isn't one</returns>
-        internal static MethodObject? GetExtensionMethodObject(Type type, string name)
+        /// <param name="methodObject">The extension method object, if found.</param>
+        /// <returns>True if an extension method is found.</returns>
+        internal static bool TryGetExtensionMethodObject(Type type, string name, out MethodObject methodObject)
         {
-            if (TryGetFromCache(type, name, out MethodObject? existingMethodObj))
+            if (TryGetFromCache(type, name, out methodObject))
             {
-                return existingMethodObj;
+                return true;
             }            
 
             var extensionMethods = GetExtensionMethods(type, name).ToArray();
             if (extensionMethods.Length > 0)
             {
-                var newMethodObj = new MethodObject(type, name, extensionMethods);
-                CacheMethodObject(type, name, newMethodObj);
-                return newMethodObj;
+                methodObject = new MethodObject(type, name, extensionMethods);
+                CacheMethodObject(type, name, methodObject);
+                return true;
             }
 
-            return null;
+            return false;
         }
 
         private static bool TryGetFromCache(Type type, string name, out MethodObject? methodObject)

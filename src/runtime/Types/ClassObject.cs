@@ -132,9 +132,7 @@ namespace Python.Runtime
                 return NewReference.DangerousFromPointer(IntPtr.Zero);
             }
 
-            var methodObject = ExtensionManager.GetExtensionMethodObject(self.inst.GetType(), name);
-
-            if (methodObject != null)
+            if (ExtensionManager.TryGetExtensionMethodObject(self.inst.GetType(), name, out MethodObject methodObject))
             {
                 // Method bindings are created dynamically for each call
                 var binding = new MethodBinding(methodObject, PyObject.FromNullableReference(ob));

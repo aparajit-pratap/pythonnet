@@ -115,6 +115,20 @@ namespace Python.Runtime
                 return CLRObject.GetReference(clrObj.inst);
             }
 
+            if (name != null
+                && ExtensionManager.TryGetExtensionMethodObject(clrObj.inst.GetType(), name, out MethodObject methodObject))
+            {
+                // Method bindings are created dynamically for each call
+                var binding = new MethodBinding(methodObject, PyObject.FromNullableReference(ob));
+
+                //TODO
+                //Investigate why we are missing PyObject_GenericHasAttr which would help us here.
+                //PyObject_GenericGetAttr sets an error in Python when the attribute is not found.
+                //However we need to do this check first because an existing attribute has priority.
+                Runtime.PyErr_Clear();
+                return binding.Alloc();
+            }
+
             return Runtime.PyObject_GenericGetAttr(ob, key);
         }
 

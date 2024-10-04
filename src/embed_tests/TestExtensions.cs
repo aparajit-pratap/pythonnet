@@ -73,26 +73,6 @@ result2 = list.GetMiddleItem[String]()
             Assert.IsTrue(PyString.IsStringType(locals.GetItem("result2")));
             Assert.AreEqual("beautiful", new PyString(locals.GetItem("result2")).ToString());
         }
-
-        [Test]
-        public void TestImportLinqExtensions()
-        {
-            PyDict locals = new PyDict();
-            PythonEngine.Exec(@"
-import clr
-from System import String
-from System.Collections.Generic import List
-from System import Linq
-clr.ImportExtensions(Linq)
-list = List[String]()
-list.Add('hello')
-list.Add('beautiful')
-list.Add('world')
-result1 = list.First[String]()
-", locals: locals);
-            Assert.IsTrue(PyString.IsStringType(locals.GetItem("result1")));
-            Assert.AreEqual("hello", new PyString(locals.GetItem("result1")).ToString());
-        }
     }
 
     public class MyCalculator : IIntegerCalculator

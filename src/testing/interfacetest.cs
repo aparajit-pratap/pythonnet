@@ -11,7 +11,12 @@ namespace Python.Test
     {
     }
 
-    public interface ISayHello1
+    public interface ISayHi
+    {
+        string SayHi();
+    }
+
+    public interface ISayHello1 : ISayHi
     {
         string SayHello();
     }
@@ -40,6 +45,11 @@ namespace Python.Test
         string ISayHello2.SayHello()
         {
             return "hello 2";
+        }
+
+        string ISayHi.SayHi()
+        {
+            return "hi";
         }
 
         public ISayHello1 GetISayHello1()
