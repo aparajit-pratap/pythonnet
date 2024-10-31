@@ -802,3 +802,26 @@ def test_generic_list_array_conversion():
         result = GenericArrayConversionTest.EchoRange(items)
         assert result[0].__class__ == Spam
         assert len(result) == 10
+
+def test_enumerable_change_this_name():
+    import clr
+    clr.AddReference("System.Core")
+    from System.Linq import Enumerable
+    # Currently raises an exception because arrays are not auto-converted to CLR types
+    with pytest.raises(TypeError):
+        sum = Enumerable.Sum([1,2,3])
+        assert sum == 6
+
+def test_indirect_generic_inference():
+    from Python.Test import MethodInferenceTest
+    from System.Collections.Generic import List
+    from System import String
+
+    list = List[String]()
+    list.Add('a')
+    list.Add('b')
+    list.Add('c')
+
+    inst = MethodInferenceTest()
+    result = inst.IndirectGeneric(2, list)
+    assert result == 'c'

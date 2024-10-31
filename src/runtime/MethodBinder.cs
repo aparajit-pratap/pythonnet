@@ -3,7 +3,6 @@ using System.Collections;
 using System.Reflection;
 using System.Text;
 using System.Collections.Generic;
-using System.Diagnostics.CodeAnalysis;
 using System.Linq;
 
 namespace Python.Runtime
@@ -116,6 +115,46 @@ namespace Python.Runtime
                     // MakeGenericMethod can throw ArgumentException if the type parameters do not obey the constraints.
                     MethodInfo method = t.MakeGenericMethod(tp);
                     result.Add(method);
+                }
+                catch (ArgumentException)
+                {
+                    // The error will remain set until cleared by a successful match.
+                }
+            }
+            return result.ToArray();
+        }
+
+        /// <summary>
+        /// Given a sequence of MethodInfo and a sequence of argument types,
+        /// return the MethodInfo(s) that represents the matching closed generic.
+        /// If unsuccessful, returns null and may set a Python error.
+        /// </summary>
+        internal static MethodInfo[] MatchGenericSignature(MethodBase[] mi, Type[]? argTypes)
+        {
+            if (argTypes == null)
+            {
+                return Array.Empty<MethodInfo>();
+            }
+            int count = argTypes.Length;
+            var result = new List<MethodInfo>();
+            foreach (MethodInfo t in mi)
+            {
+                if (!t.IsGenericMethod)
+                {
+                    // At this point, any non-generic methods aren't matches anyways. If one of them were a match it would have been found in the calling Bind method and we wouldn't end up here.
+                    continue;
+                }
+                if (t.GetParameters().Length != count)
+                {
+                    continue;
+                }
+                try
+                {
+                    // MakeGenericMethod can throw ArgumentException if the type parameters do not obey the constraints.
+                    if (TypeInferer.TryMakeGenericMethod(t, argTypes, out MethodInfo method))
+                    {
+                        result.Add(method);
+                    }
                 }
                 catch (ArgumentException)
                 {
@@ -520,7 +559,7 @@ namespace Python.Runtime
                 // method was not called using the [] syntax. Let's introspect the
                 // type of the arguments and use it to construct the correct method.
                 Type[]? types = Runtime.PythonArgsToTypeArray(args, true);
-                MethodInfo[] overloads = MatchParameters(methods, types);
+                MethodInfo[] overloads = MatchGenericSignature(methods, types);
                 if (overloads.Length != 0)
                 {
                     return Bind(inst, args, kwargDict, overloads, matchGenerics: false);

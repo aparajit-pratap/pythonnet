@@ -16,6 +16,15 @@ def test_linq_extensions():
     list.Add('hello')
     list.Add('beautiful')
     list.Add('world')
+    assert list.First() == 'hello'
     assert list.First[String]() == 'hello'
-    assert list.Skip[String](1).First[String]() == 'beautiful'
-    list.FirstOrDefault[String](Func[String, bool](lambda x: x.startswith('w'))) == 'world'
+    assert list.Skip(1).First() == 'beautiful'
+    assert list.FirstOrDefault(Func[String, bool](lambda x: x.startswith("w"))) == 'world'
+
+def test_implement_generic_interface():
+    import clr
+    from Python.Test import NumberList
+    from System import Linq
+    clr.ImportExtensions(Linq)
+    list = NumberList()
+    assert list.Last() == 3

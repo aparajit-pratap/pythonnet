@@ -1,5 +1,6 @@
 using System;
 using System.Collections.Generic;
+using System.Linq;
 using System.Reflection;
 using System.Runtime.CompilerServices;
 
@@ -101,7 +102,7 @@ namespace Python.Runtime
                     {
                         var parameters = method.GetParameters();
                         var extendedType = parameters.Length > 0 ? parameters[0].ParameterType : null;
-                        if (extendedType != null && CanApplyExtension(type, extendedType))
+                        if (extendedType != null && InheritsOrImplements(type, extendedType))
                             result.Add(method);
                     }
                 }
@@ -110,45 +111,44 @@ namespace Python.Runtime
             return result;
         }
 
-        private static bool CanApplyExtension(Type type, Type extendedType)
+        private static bool InheritsOrImplements(Type child, Type parent)
         {
-            // Open generic types need to be closed before checking assignability
-            if (extendedType.ContainsGenericParameters)
+            parent = GetFullTypeDefinition(parent);
+
+            var currentChild = GetFullTypeDefinition(child);
+
+            while (currentChild != typeof(object))
             {
-                // TODO: This is still a long way from working in all cases.
-                // It probably makes sense to copy TypeInferer and some related classes entirely:
-                // https://github.com/IronLanguages/dlr/blob/master/Src/Microsoft.Dynamic/Actions/Calls/TypeInferer.cs
+                if (parent == currentChild || HasAnyInterfaces(parent, currentChild))
+                    return true;
 
-                if (!type.IsGenericType)
-                {
+                currentChild = currentChild.BaseType != null
+                               && currentChild.BaseType.IsGenericType
+                                   ? currentChild.BaseType.GetGenericTypeDefinition()
+                                   : currentChild.BaseType;
+
+                if (currentChild == null)
                     return false;
-                }
-
-                var extendedTypeArgs = extendedType.GetGenericArguments();
-                var typeArgs = type.GetGenericArguments();
-                if (extendedTypeArgs.Length != typeArgs.Length)
-                {
-                    return false;
-                }
-
-                var types = new List<Type>();
-                for (int i = 0; i < extendedTypeArgs.Length; i++)
-                {
-                    if (extendedTypeArgs[i].IsGenericParameter)
-                    {
-                        types.Add(typeArgs[i]);
-                    }
-                }
-
-                if (!extendedType.IsGenericTypeDefinition)
-                {
-                    extendedType = extendedType.GetGenericTypeDefinition();
-                }
-
-                extendedType = extendedType.MakeGenericType(types.ToArray());
             }
+            return false;
+        }
 
-            return extendedType.IsAssignableFrom(type);
+        private static bool HasAnyInterfaces(Type parent, Type child)
+        {
+            return child.GetInterfaces()
+                .Any(childInterface =>
+                {
+                    var currentInterface = childInterface.IsGenericType
+                        ? childInterface.GetGenericTypeDefinition()
+                        : childInterface;
+
+                    return currentInterface == parent;
+                });
+        }
+
+        private static Type GetFullTypeDefinition(Type type)
+        {
+            return type.IsGenericType ? type.GetGenericTypeDefinition() : type;
         }
     }
 }

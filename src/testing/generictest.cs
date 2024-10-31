@@ -1,3 +1,7 @@
+using System.Collections;
+using System.Collections.Generic;
+using System.Linq;
+
 namespace Python.Test
 {
     /// <summary>
@@ -142,6 +146,19 @@ namespace Python.Test
         public virtual Q VirtMethod<Q>(Q arg1)
         {
             return arg1;
+        }
+    }
+
+    public class MethodInferenceTest
+    {
+        public U IndirectGeneric<U>(int index, IEnumerable<U> objects)
+        {
+            return objects.Skip(index).FirstOrDefault();
+        }
+
+        public static string NetInferenceDemo(){
+            var instance = new MethodInferenceTest();
+            return instance.IndirectGeneric(2, new List<string>(){"a", "b", "c"});
         }
     }
 }

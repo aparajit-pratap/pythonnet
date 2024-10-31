@@ -168,3 +168,12 @@ def test_methods_of_Object_are_available():
     assert clrVal.GetHashCode() == i.GetHashCode()
     assert clrVal.GetType() == i.GetType()
     assert clrVal.ToString() == i.ToString()
+
+def test_call_inherited_generic_interface_method():
+    """Test an interface object can call methods declared in a base interface."""
+    from Python.Test import SpecificInterfaceImplementer
+
+    ob = SpecificInterfaceImplementer()
+    assert ob.Get(1) == 1
+    Iob = ob.AsInterface()
+    assert Iob.Get(1) == 1

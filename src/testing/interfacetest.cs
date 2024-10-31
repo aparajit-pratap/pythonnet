@@ -124,4 +124,17 @@ namespace Python.Test
             some.Get(x);
         }
     }
+
+    public class SpecificInterfaceImplementer : IGenericInterface<int>
+    {
+        public int Get(int x)
+        {
+            return x;
+        }
+
+        public IGenericInterface<int> AsInterface()
+        {
+            return this;
+        }
+    }
 }
