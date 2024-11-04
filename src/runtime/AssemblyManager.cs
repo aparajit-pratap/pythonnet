@@ -287,7 +287,7 @@ namespace Python.Runtime
             // the assembly.
             foreach (Type t in GetTypes(assembly))
             {
-                string ns = t.Namespace ?? "";
+                string ns = t?.Namespace ?? "";
                 if (!namespaces.ContainsKey(ns))
                 {
                     string[] names = ns.Split('.');
@@ -405,28 +405,20 @@ namespace Python.Runtime
 
         internal static Type[] GetTypes(Assembly a)
         {
-            if (a.IsDynamic)
+            try
             {
-                try
-                {
-                    return a.GetTypes().Where(IsExported).ToArray();
-                }
-                catch (ReflectionTypeLoadException exc)
-                {
-                    // Return all types that were successfully loaded
-                    return exc.Types.Where(x => x != null && IsExported(x)).ToArray();
-                }
+                var types = a.IsDynamic ? a.GetTypes() : a.GetExportedTypes();
+                return types.Where(IsExported).ToArray();
             }
-            else
+            catch (ReflectionTypeLoadException exc) when (a.IsDynamic)
             {
-                try
-                {
-                    return a.GetExportedTypes().Where(IsExported).ToArray();
-                }
-                catch (FileNotFoundException)
-                {
-                    return new Type[0];
-                }
+                // For dynamic assemblies, return only successfully loaded types
+                return exc.Types.Where(x => x != null && IsExported(x)).ToArray();
+            }
+            catch (FileNotFoundException ex)
+            {
+                Trace.TraceWarning("Error missing dependency for {0} {1}", a, ex);
+                return Array.Empty<Type>();
             }
         }
 

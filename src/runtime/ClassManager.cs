@@ -1,6 +1,7 @@
 using System;
 using System.Collections.Generic;
 using System.Diagnostics;
+using System.IO;
 using System.Linq;
 using System.Reflection;
 using System.Security;
@@ -219,7 +220,16 @@ namespace Python.Runtime
             // information, including generating the member descriptors
             // that we'll be putting in the Python class __dict__.
 
-            ClassInfo info = GetClassInfo(type, impl);
+            ClassInfo info;
+            try
+            {
+                info = GetClassInfo(type, impl);
+            }
+            catch (Exception ex)
+            {
+                Trace.TraceWarning("Error getting class info {0} {1}", type, ex);
+                return;
+            }
 
             impl.indexer = info.indexer;
             impl.richcompare.Clear();
