@@ -1033,7 +1033,7 @@ namespace Python.Runtime
 
                 object obj = null;
 
-                if (!Converter.ToManaged(item.Borrow(), elementType ?? typeof(object), out obj, true))
+                if (!Converter.ToManaged(item.Borrow(), elementType ?? typeof(object), out obj, setError))
                 {
                     return false;
                 }

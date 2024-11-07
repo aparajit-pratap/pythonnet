@@ -19,6 +19,9 @@ This document follows the conventions laid out in [Keep a CHANGELOG][].
 
 ### Changed
 
+-   Do not set errors when type conversion fails for valid reasons. See (https://git.autodesk.com/Dynamo/pythonnet/pull/64)
+-   Improve error handling when dlls import fail. See (https://git.autodesk.com/Dynamo/pythonnet/pull/63)
+
 ### Fixed
 
 -   Fixed RecursionError for reverse operators on C# operable types from python. See #2240
