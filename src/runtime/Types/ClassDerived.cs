@@ -1,11 +1,11 @@
 using System;
 using System.Collections.Generic;
 using System.ComponentModel;
-using System.Diagnostics;
 using System.Linq;
 using System.Reflection;
 using System.Reflection.Emit;
 using System.Runtime.InteropServices;
+using System.Text;
 
 using Python.Runtime.Native;
 
@@ -33,6 +33,14 @@ namespace Python.Runtime
     {
         private static Dictionary<string, AssemblyBuilder> assemblyBuilders;
         private static Dictionary<Tuple<string, string>, ModuleBuilder> moduleBuilders;
+
+        /// <summary>
+        /// Cache stores generated derived types. An instance of these types
+        /// holds a reference to the python object instance and dynamically
+        /// looks up attributes, so they can be reused when python class is
+        /// modified on the python side.
+        /// </summary>
+        private static readonly Dictionary<string, Type> cache = new();
 
         static ClassDerivedObject()
         {
@@ -142,24 +150,26 @@ namespace Python.Runtime
         /// methods overridden to call out to python if the associated python
         /// object has overridden the method.
         /// </summary>
-        internal static Type CreateDerivedType(string name,
+        internal static Type CreateDerivedType(string typeName,
             Type baseType,
             IList<Type> typeInterfaces,
-            BorrowedReference py_dict,
-            string? namespaceStr,
+            BorrowedReference pyDict,
+            string? namespaceName,
             string? assemblyName,
             string moduleName = "Python.Runtime.Dynamic.dll")
         {
             // TODO: clean up
-            if (null != namespaceStr)
-            {
-                name = namespaceStr + "." + name;
-            }
 
-            if (null == assemblyName)
-            {
-                assemblyName = "Python.Runtime.Dynamic";
-            }
+            typeName ??= namespaceName + "." + typeName;
+            assemblyName ??= "Python.Runtime.Dynamic";
+
+            // If we have already created a derived type, return that
+            // this avoids exceptions when a script defining a type within assembly.namespace
+            // is executed more that once. We just keep using the same type created before
+            // since the .NET implementation of that type does not change during runtime.
+            typeName = CreateUniqueTypeName(namespaceName, typeName, baseType, typeInterfaces);
+            if (cache.TryGetValue(typeName, out Type derivedType))
+                return derivedType;
 
             ModuleBuilder moduleBuilder = GetModuleBuilder(assemblyName, moduleName);
 
@@ -176,7 +186,7 @@ namespace Python.Runtime
                 baseClass = typeof(object);
             }
 
-            TypeBuilder typeBuilder = moduleBuilder.DefineType(name,
+            TypeBuilder typeBuilder = moduleBuilder.DefineType(typeName,
                 TypeAttributes.Public | TypeAttributes.Class,
                 baseClass,
                 interfaces.ToArray());
@@ -198,9 +208,9 @@ namespace Python.Runtime
 
             // Override any properties explicitly overridden in python
             var pyProperties = new HashSet<string>();
-            if (py_dict != null && Runtime.PyDict_Check(py_dict))
+            if (pyDict != null && Runtime.PyDict_Check(pyDict))
             {
-                using var dict = new PyDict(py_dict);
+                using var dict = new PyDict(pyDict);
                 using var keys = dict.Keys();
                 foreach (PyObject pyKey in keys)
                 {
@@ -247,9 +257,9 @@ namespace Python.Runtime
             }
 
             // Add any additional methods and properties explicitly exposed from Python.
-            if (py_dict != null && Runtime.PyDict_Check(py_dict))
+            if (pyDict != null && Runtime.PyDict_Check(pyDict))
             {
-                using var dict = new PyDict(py_dict);
+                using var dict = new PyDict(pyDict);
                 using var keys = dict.Keys();
                 foreach (PyObject pyKey in keys)
                 {
@@ -294,10 +304,26 @@ namespace Python.Runtime
             Assembly assembly = Assembly.GetAssembly(type);
             AssemblyManager.ScanAssembly(assembly);
 
-            // FIXME: assemblyBuilder not used
-            AssemblyBuilder assemblyBuilder = assemblyBuilders[assemblyName];
+            cache[typeName] = type;
 
             return type;
+        }
+
+        /// <summary>
+        /// Create a unique type name for the derived class
+        /// Current implementation creates unique ids like:
+        /// Python.Runtime.Dynamic.BaseClass__BaseInterface1__BaseInterface2__main__SubClass
+        /// </summary>
+        private static string CreateUniqueTypeName(string? namespaceName, string typeName, Type baseType, IEnumerable<Type> interfaces)
+        {
+            var sb = new StringBuilder();
+            if (namespaceName != null)
+                sb.Append(namespaceName + ".");
+            sb.Append($"{baseType.FullName}");
+            foreach (Type i in interfaces)
+                sb.Append($"__{i.FullName}");
+            sb.Append($"__{typeName}");
+            return sb.ToString();
         }
 
         /// <summary>

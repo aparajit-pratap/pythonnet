@@ -28,6 +28,83 @@ def interface_test_class_fixture(subnamespace):
 
     return InterfaceTestClass
 
+def redefine_interface_test_class_fixture(subnamespace):
+    """Delay creation of class until test starts."""
+
+    class InterfaceTestClass(IInterfaceTest):
+        """class that implements the test interface"""
+        __namespace__ = "Python.Test." + subnamespace
+
+        def foo(self):
+            return "InterfaceTestClass2"
+
+        def bar(self, x, i):
+            return "/".join([x] * i)
+
+    return InterfaceTestClass
+
+def old_style_redefine_interface_test_class_fixture(subnamespace):
+    """Delay creation of class until test starts."""
+
+    class InterfaceTestClass:
+        """class that implements the test interface"""
+
+        def __new__(cls, *args, **kwargs):
+            cls.args = args
+            # !! Each time you modify _InnerClass, increment the namespace suffix
+            cls.__namespace__ = "TestInterface3"
+            try:
+                # Has the class already been registered?
+                return __import__(cls.__namespace__)._InnerClass(*cls.args)
+            except ImportError as ex:
+                # Must be our first time, define the class
+                class _InnerClass(IInterfaceTest):
+                    __namespace__ = cls.__namespace__
+
+                    def __init__(self):
+                        super().__init__()
+
+                    def foo(self):
+                        return "InterfaceTestClass"
+
+                    def bar(self, x, i):
+                        return "/".join([x] * i)
+
+                return _InnerClass(*cls.args)
+
+    return InterfaceTestClass
+
+def old_style_redefine_interface_test_class_fixture2(subnamespace):
+    """Delay creation of class until test starts."""
+
+    class InterfaceTestClass:
+        """class that implements the test interface"""
+
+        def __new__(cls, *args, **kwargs):
+            cls.args = args
+            # !! Each time you modify _InnerClass, increment the namespace suffix
+            cls.__namespace__ = "TestInterface4"
+            try:
+                # Has the class already been registered?
+                return __import__(cls.__namespace__)._InnerClass(*cls.args)
+            except ImportError as ex:
+                # Must be our first time, define the class
+                class _InnerClass(IInterfaceTest):
+                    __namespace__ = cls.__namespace__
+
+                    def __init__(self):
+                        super().__init__()
+
+                    def foo(self):
+                        return "InterfaceTestClass2"
+
+                    def bar(self, x, i):
+                        return "/".join([x] * i)
+
+                return _InnerClass(*cls.args)
+
+    return InterfaceTestClass
+
 
 def interface_generic_class_fixture(subnamespace):
 
@@ -344,3 +421,23 @@ def test_implement_interface_and_class():
         def SayHi(self):
             return "hi"
     obj = DualSubClass0()
+
+def test_redefine_class():
+    """Test python classes derived from C# interfaces can be redefined"""
+    InterfaceTestClass = interface_test_class_fixture(test_interface.__name__)
+    ob = InterfaceTestClass()
+    assert ob.foo() == "InterfaceTestClass"
+
+    InterfaceTestClass = redefine_interface_test_class_fixture(test_interface.__name__)
+    ob = InterfaceTestClass()
+    assert ob.foo() == "InterfaceTestClass2"
+
+def test_redefine_class_old_style():
+    """Test python classes derived from C# interfaces can be redefined"""
+    InterfaceTestClass = old_style_redefine_interface_test_class_fixture(test_interface.__name__)
+    ob = InterfaceTestClass()
+    assert ob.foo() == "InterfaceTestClass"
+
+    InterfaceTestClass = old_style_redefine_interface_test_class_fixture2(test_interface.__name__)
+    ob = InterfaceTestClass()
+    assert ob.foo() == "InterfaceTestClass2"
