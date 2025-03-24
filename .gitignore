@@ -69,3 +69,8 @@ cov-int/
 !.vscode/tasks.json
 !.vscode/launch.json
 !.vscode/extensions.json
+
+# Autodesk pipeline
+/python
+/.venv
+/Release-Preview
